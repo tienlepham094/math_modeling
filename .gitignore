@@ -1,0 +1,50 @@
+# --- macOS ---
+.DS_Store
+._*
+
+# --- Editor / IDE ---
+.vscode/
+.idea/
+*.swp
+*~
+
+# --- Julia ---
+# Giữ Project.toml và Manifest.toml để tái lập đúng môi trường chạy thí nghiệm
+*.jl.cov
+*.jl.*.cov
+*.jl.mem
+deps/build.log
+deps/deps.jl
+/docs/build/
+.julia/
+
+# --- Pluto ---
+# Pluto tạo file backup khi notebook bị hỏng hoặc mở lại
+*.jl.backup
+*.backup
+
+# --- Solver logs / license ---
+*.log
+gurobi.lic
+*.lp
+*.mps
+
+# --- Kết quả trung gian ---
+# Giữ results/*.csv (bảng kết quả cho báo cáo), bỏ dữ liệu tạm
+results/tmp/
+*.jld2
+*.jls
+
+# --- LaTeX (thư mục report/) ---
+*.aux
+*.bbl
+*.blg
+*.fdb_latexmk
+*.fls
+*.out
+*.toc
+*.synctex.gz
+*.nav
+*.snm
+*.lof
+*.lot
