@@ -6,6 +6,7 @@ Tài liệu gốc: `Challenge_Orange_ROADEF_2026_Subject.pdf`, hướng dẫn c�
 > **Hạn nộp: Chủ nhật 25/10/2026.** (Hạn đăng ký nhóm qua Google Form là thứ Sáu 09/10, đã qua.)
 
 **Mục lục**
+
 1. [Bối cảnh: bài toán đến từ đâu](#1-bối-cảnh-bài-toán-đến-từ-đâu)
 2. [Các khái niệm, giải thích từng cái](#2-các-khái-niệm-giải-thích-từng-cái)
 3. [Ví dụ toy, tính tay từ đầu đến cuối](#3-ví-dụ-toy-tính-tay-từ-đầu-đến-cuối)
@@ -33,12 +34,14 @@ Orange quản lý các mạng backbone IP/MPLS có hàng nghìn router và link.
 ## 2. Các khái niệm, giải thích từng cái
 
 ### 2.1 Mạng `(G = (V, A), ω, c)`
+
 - `V`: tập nút (router), `n = |V|`.
 - `A`: tập cung có hướng (link). Link hai chiều được tách thành **2 cung** riêng, mỗi cung có metric và capacity riêng.
 - `ω(a)`: trọng số (metric) dùng để tính đường ngắn nhất.
 - `c(a)`: dung lượng (bandwidth) của cung.
 
 ### 2.2 Forwarding graph `FG(u, v)` và ECMP
+
 - `FG(u, v)` là đồ thị con gồm **tất cả các cung nằm trên ít nhất một đường ngắn nhất** từ `u` đến `v`.
 - Nếu có nhiều đường ngắn nhất, cơ chế **ECMP** (Equal-Cost Multi-Path) chia luồng theo quy tắc: **tại mỗi nút, luồng đi vào được chia đều cho các cung đi ra của nút đó trong `FG(u,v)`.**
 - Lưu ý: luồng được chia đều **theo từng nút**, không phải đều cho mọi đường. Vì vậy ba đường ngắn nhất có thể nhận các tỉ lệ 1/2, 1/4, 1/4 thay vì 1/3 mỗi đường (xem ví dụ toy).
@@ -46,12 +49,14 @@ Orange quản lý các mạng backbone IP/MPLS có hàng nghìn router và link.
 **Kiểm tra một cung có thuộc `FG(u,v)` không.** Gọi `dist(x)` là độ dài đường ngắn nhất từ `x` đến `v`. Cung `a = (x, y)` thuộc forwarding graph tới `v` khi và chỉ khi `dist(x) = ω(a) + dist(y)`.
 
 ### 2.3 Split coefficient `r(u, v, a, t)` (tham số quan trọng nhất)
+
 - `r(u, v, a, t)` là **tỉ lệ** của 1 đơn vị luồng gửi từ `u` đến `v` (theo ECMP, trên đồ thị `G_t`) đi qua cung `a`.
 - `r ∈ [0, 1]`, và `r = 0` nếu `a ∉ FG(u,v)`.
 - Phải tính `r` cho **mọi cặp** `(u, v)`, không chỉ các cặp nguồn/đích của demand, vì bất kỳ cặp nút nào cũng có thể trở thành một segment.
 - `r` **không phải biến** mà là **dữ liệu tính trước**. Nhờ vậy mô hình tối ưu là tuyến tính.
 
 ### 2.4 Segment path và segment
+
 - **Segment path** `⟨s, w1, …, wℓ, t⟩`: nguồn `s`, các waypoint `w1…wℓ` theo thứ tự, đích `t`. `ℓ = 0` nghĩa là đi thẳng theo đường ngắn nhất.
 - **Segment**: cặp hai nút liên tiếp trong segment path, ví dụ `(s, w1), (w1, w2), …, (wℓ, t)`. Một path có `ℓ` waypoint sẽ có `ℓ + 1` segment.
 - Mỗi segment `(i, j)` được định tuyến bằng `FG(i, j)` và ECMP.
@@ -60,27 +65,29 @@ Orange quản lý các mạng backbone IP/MPLS có hàng nghìn router và link.
 **Góc nhìn quan trọng cho việc mô hình hoá.** Tưởng tượng một **đồ thị đầy đủ `H`** trên cùng tập nút `V`, trong đó mỗi cặp `(i, j)` là một "cung ảo" (một segment). Khi đó **chọn segment path cho demand `(s,t)` chính là chọn một đường đi từ `s` đến `t` trong `H` có tối đa `maxSeg` cung.** Chọn đường đi thì mô hình bằng ràng buộc bảo toàn luồng, đây là kỹ thuật quen thuộc.
 
 ### 2.5 Demand và traffic matrix
+
 - Demand `d = (s, t)` có lưu lượng `ν(d, t)` thay đổi theo chu kỳ thời gian `t`.
 - Lưu ý: trong đề, chữ `t` vừa chỉ **đích** của demand vừa chỉ **chu kỳ thời gian**. Cần đọc kỹ ngữ cảnh.
 
 ### 2.6 Thời gian, intervention, budget
+
 - `T = {0, 1, …, h−1}`. **`t = 0` là trạng thái bình thường**: không có link nào bị tắt và không có budget. `T* = T \ {0}`.
 - `q(t)`: tập các cung bị tắt tại chu kỳ `t`. `G_t` là đồ thị `G` sau khi bỏ các cung trong `q(t)`. **Vì đồ thị thay đổi nên đường ngắn nhất thay đổi, và phải tính lại `r(·,·,·,t)` trên `G_t`.**
 - `κ(t)`: số thay đổi tối đa giữa chu kỳ `t−1` và `t`.
 - **Cách đếm thay đổi**: `dist(P, P′)` = số segment **bị thêm** + số segment **bị bỏ**.
 
-| Trước | Sau | Segment bỏ | Segment thêm | dist |
-|---|---|---|---|---|
-| ⟨s,w,t⟩ | ⟨s,t⟩ | (s,w), (w,t) | (s,t) | 3 |
-| ⟨s,w1,w2,t⟩ | ⟨s,w1,t⟩ | (w1,w2), (w2,t) | (w1,t) | 3 |
-| ⟨s,w1,w2,t⟩ | ⟨s,w2,w1,t⟩ | 3 segment | 3 segment | 6 |
-| ⟨s,w1,t⟩ | ⟨s,w2,t⟩ | 2 | 2 | 4 |
+| Trước       | Sau           | Segment bỏ     | Segment thêm | dist |
+| ------------- | ------------- | --------------- | ------------- | ---- |
+| ⟨s,w,t⟩     | ⟨s,t⟩       | (s,w), (w,t)    | (s,t)         | 3    |
+| ⟨s,w1,w2,t⟩ | ⟨s,w1,t⟩    | (w1,w2), (w2,t) | (w1,t)        | 3    |
+| ⟨s,w1,w2,t⟩ | ⟨s,w2,w1,t⟩ | 3 segment       | 3 segment     | 6    |
+| ⟨s,w1,t⟩    | ⟨s,w2,t⟩    | 2               | 2             | 4    |
 
 ### 2.7 Tải (load) và MLU
+
 - Tải của cung `a` tại chu kỳ `t` là tổng luồng đi qua cung chia cho dung lượng:
 
   `λ(a,t) = ( Σ_d Σ_{(i,j) ∈ segment của d} r(i,j,a,t) · ν(d,t) ) / c(a)`
-
 - `λ > 1` nghĩa là link quá tải (nghẽn).
 - **MLU** (Maximum Link Utilization) là `max_a λ(a,t)`, tức tải của link nặng nhất.
 
@@ -91,9 +98,9 @@ Orange quản lý các mạng backbone IP/MPLS có hàng nghìn router và link.
 Mạng có 7 nút `v0…v6` và 22 cung (xem `toy-net.json` ở mục 5). Có hai demand:
 
 | Demand | Nguồn → đích | ν tại t=0 | ν tại t=1 |
-|---|---|---|---|
-| d0 | v0 → v5 | 50 | 100 |
-| d1 | v2 → v5 | 100 | 50 |
+| ------ | ---------------- | ----------- | ----------- |
+| d0     | v0 → v5         | 50          | 100         |
+| d1     | v2 → v5         | 100         | 50          |
 
 `maxSeg = 4`. Tại t=1, link 2 (`v1→v3`) và link 3 (`v1→v4`) bị tắt. Budget `κ(1) = 20`.
 
@@ -101,11 +108,12 @@ Mạng có 7 nút `v0…v6` và 22 cung (xem `toy-net.json` ở mục 5). Có ha
 
 **Bước 1: Dijkstra ngược từ v5**, tìm khoảng cách ngắn nhất từ mỗi nút đến v5:
 
-| nút | v3 | v6 | v4 | v1 | v2 | v0 |
-|---|---|---|---|---|---|---|
+| nút     | v3  | v6  | v4                    | v1                    | v2           | v0           |
+| -------- | --- | --- | --------------------- | --------------------- | ------------ | ------------ |
 | dist→v5 | 100 | 100 | 200 (qua v3 hoặc v6) | 300 (qua v3 hoặc v4) | 300 (qua v4) | 400 (qua v1) |
 
 **Bước 2: Đẩy 1 đơn vị luồng từ v0**, xét các nút theo thứ tự `dist` giảm dần:
+
 - Tại v0: chỉ có cung `v0→v1` thoả `100 + 300 = 400`. Cung `v0→v2` cho `200 + 300 = 500`, không thoả. Vậy `r(a0,1) = 1`.
 - Tại v1: cả `v1→v3` (`200 + 100`) và `v1→v4` (`100 + 200`) đều bằng 300. Chia đôi: `r(a1,3) = r(a1,4) = 0.5`.
 - Tại v4 (nhận 0.5): `v4→v3` và `v4→v6` thoả, còn `v4→v5` (`300 ≠ 200`) không thoả. Chia đôi: `r(a4,3) = r(a4,6) = 0.25`.
@@ -138,16 +146,16 @@ Kết quả khớp **Table 2** của đề. Tương tự, `r(v2, v5, ·, 0)` = `
 
 ### 4.1 Dữ liệu (tham số)
 
-| Ký hiệu | Lấy từ | Ý nghĩa |
-|---|---|---|
-| `V, A` | net.json | nút, cung |
-| `c(a)` | net.json (`capacity`) | dung lượng |
-| `ω(a)` | net.json (`metric`) | chỉ dùng để tính `r` |
-| `r(i,j,a,t)` | **tự tính** từ `G_t` và `ω` | split coefficient |
-| `D, s_d, t_d` | tm.json | các demand |
-| `ν(d,t)` | tm.json (`v[t]`) | lưu lượng |
-| `maxSeg` | scenario.json | số segment tối đa |
-| `q(t), κ(t)` | scenario.json | link bị tắt, budget |
+| Ký hiệu       | Lấy từ                                   | Ý nghĩa                  |
+| --------------- | ------------------------------------------ | -------------------------- |
+| `V, A`        | net.json                                   | nút, cung                 |
+| `c(a)`        | net.json (`capacity`)                    | dung lượng               |
+| `ω(a)`       | net.json (`metric`)                      | chỉ dùng để tính `r` |
+| `r(i,j,a,t)`  | **tự tính** từ `G_t` và `ω` | split coefficient          |
+| `D, s_d, t_d` | tm.json                                    | các demand                |
+| `ν(d,t)`     | tm.json (`v[t]`)                         | lưu lượng               |
+| `maxSeg`      | scenario.json                              | số segment tối đa       |
+| `q(t), κ(t)` | scenario.json                              | link bị tắt, budget      |
 
 ### 4.2 Biến
 
@@ -161,7 +169,6 @@ Kết quả khớp **Table 2** của đề. Tương tự, `r(v2, v5, ·, 0)` = `
 - Trong project này dùng phiên bản chuẩn là **cực tiểu MLU**:
 
   `min U`  với  `λ(a,t) ≤ U` cho mọi `a, t`.
-
 - Đây là thành phần đầu tiên (quan trọng nhất) của lex-min, nên một nghiệm tối ưu lex-min cũng tối ưu theo MLU.
 
 ### 4.4 Ràng buộc
@@ -248,11 +255,11 @@ Mỗi instance gồm 3 file JSON.
 
 **Output** `*-srpaths.json` (tuỳ chọn): `{"srpaths": [ {"d": 0, "t": 0, "w": [3]}, ... ]}`. Được phép bỏ qua các entry có danh sách waypoint rỗng.
 
-
 <details>
 <summary>3 file JSON của instance toy (chép từ PDF, dùng để test)</summary>
 
 `toy-net.json`
+
 ```json
 {
 "directed": true, "multigraph": false,
@@ -287,6 +294,7 @@ Mỗi instance gồm 3 file JSON.
 ```
 
 `toy-tm.json`
+
 ```json
 { "num_time_slots": 2,
   "demands": [ { "v": [50.0, 100.0], "s": 0, "t": 5 },
@@ -294,11 +302,13 @@ Mỗi instance gồm 3 file JSON.
 ```
 
 `toy-scenario.json`
+
 ```json
 { "max_segments": 4,
   "budget": [ { "t": 1, "value": 20 } ],
   "interventions": [ { "t": 1, "links": [2, 3] } ] }
 ```
+
 </details>
 
 ---
@@ -311,12 +321,15 @@ Mỗi instance gồm 3 file JSON.
 
 ```julia
 using Pkg
-Pkg.add(["JSON", "JuMP", "HiGHS", "Pluto"])   # HiGHS miễn phí; nếu có license thì thêm "Gurobi"
+Pkg.add(["JSON", "JSON3", "Graphs", "Multigraphs", "JuMP", "HiGHS", "Pluto"])   # HiGHS miễn phí; nếu có license thì thêm "Gurobi"
 # Mở notebook: using Pluto; Pluto.run()
 ```
 
 - **Solver.** Nếu được, nên dùng **Gurobi** hoặc **CPLEX** (có license học thuật miễn phí), vì chúng nhanh hơn HiGHS rất nhiều với MILP lớn. Ba giá trị gap, bound và số nút B&B đều lấy được qua JuMP.
-- **Pluto.** Script Pluto mà giảng viên cung cấp là một notebook Julia (file `.jl`). Mở bằng `Pluto.run()`.
+- **Pluto.** Giảng viên cung cấp 2 notebook Julia (file `.jl`), mở bằng `Pluto.run()`:
+  - `json_to_graph_pluto_v2.jl` cho instance có `"multigraph": false`.
+  - `json_to_multigraph_pluto.jl` cho instance có `"multigraph": true` (có cung song song): SetA 05, 06, 08, 10, 12, 13, 14, 16, 17, 19. Notebook thứ nhất sẽ báo lỗi nếu mở các file này.
+  - Muốn xem instance khác thì đổi tên file ở biến `json_file` trong notebook.
 
 ### 6.2 Đọc dữ liệu (Step 4)
 
@@ -368,6 +381,7 @@ end
 ### 6.3 Tính split coefficients `r` (Step 3 và Step 7)
 
 Thuật toán, với mỗi đích `v`:
+
 1. **Dijkstra ngược** từ `v` để có `dist[x]`, độ dài đường ngắn nhất từ `x` đến `v`.
 2. Cung `a = (x, y)` thuộc forwarding graph khi `dist[x] == w[a] + dist[y]`.
 3. Với mỗi nguồn `u`: đặt `flow[u] = 1`, rồi xét các nút theo thứ tự **`dist` giảm dần**. Đây là một thứ tự topo, vì trên `FG` mỗi bước đi đều làm `dist` giảm khi `ω > 0`. Tại mỗi nút, chia đều `flow` cho các cung ra thuộc `FG`.
@@ -529,15 +543,15 @@ end
 Thông tin cần ghi vào bảng kết quả cho mỗi instance:
 
 | Instance | \|V\| | \|A\| | \|D\| | Obj (MLU) | CPU (s) | Status | Gap | #Nodes B&B |
-|---|---|---|---|---|---|---|---|---|
+| -------- | ----- | ----- | ----- | --------- | ------- | ------ | --- | ---------- |
 
 Theo phần Deliverables, mỗi instance chạy **10 lần** và báo cáo **trung bình**. Ghi kết quả ra CSV để dựng bảng cho báo cáo.
 
 ### 6.6 Kiểm thử trên toy (bắt buộc làm trước khi chạy SetA)
 
 ```julia
-inst = read_instance("instances/toy/toy-net.json", "instances/toy/toy-tm.json",
-                     "instances/toy/toy-scenario.json")
+inst = read_instance("toy/toy-net.json", "toy/toy-tm.json",
+                     "toy/toy-scenario.json")
 r0 = split_coefficients(inst)
 r0[(1, 6)]        # v0 -> v5 (chỉ số Julia = id JSON + 1)
 # Kỳ vọng: Dict(1 => 1.0, 3 => 0.5, 4 => 0.5, 7 => 0.75, 19 => 0.25, 10 => 0.25, 22 => 0.25)
@@ -551,6 +565,7 @@ solve_and_report(model2)         # kỳ vọng obj = 0.375 (MLU trên cả hai c
 ```
 
 Các giá trị kỳ vọng đã được kiểm tra bằng cách vét cạn mọi danh sách waypoint trên toy.
+
 - t=0: MLU tối ưu là 0.375.
 - t=1: MLU tối ưu là 0.375.
 
@@ -559,41 +574,54 @@ Các giá trị kỳ vọng đã được kiểm tra bằng cách vét cạn m�
 ## 7. Những việc cần làm
 
 ### Chuẩn bị
-- [ ] Bổ sung các file còn thiếu: **script Pluto**, **`calculating_r.pdf`**, **instances SetA**.
+
+- [X] Bổ sung các file còn thiếu: **script Pluto**, **`calculating_r.pdf`**, **instances SetA**.
 - [ ] Cài Julia (`brew install juliaup && juliaup add release`), JuMP, JSON, solver và Pluto.
-- [ ] Tạo thư mục `instances/toy/` và chép 3 file JSON toy ở mục 5 vào đó.
+- [ ] Tạo thư mục `toy/` và chép 3 file JSON toy ở mục 5 vào đó.
 - [ ] Ghi lại cấu hình máy (CPU, RAM, OS, phiên bản Julia/JuMP/solver) để đưa vào báo cáo.
 
 ### Step 1: Đọc hiểu đề
+
 - [ ] Đọc mục 1–4 ở trên và tự tính lại ví dụ toy (mục 3).
 
 ### Step 2: Đồ thị G tại t = 0
-- [ ] Dùng script Pluto để dựng đồ thị từ `*-net.json`.
+
+- [ ] Dùng script Pluto để dựng đồ thị từ `*-net.json`. Instance multigraph phải mở bằng `json_to_multigraph_pluto.jl` (xem mục 6.1).
+- [ ] Với instance multigraph, kiểm tra `split_coefficients` chia ECMP đều cho từng cung song song (code ở mục 6.3 đánh chỉ số theo cung nên đã xử lý được).
 
 ### Step 3: Tính `r[i,j,a,0]`
+
 - [ ] Đọc `calculating_r.pdf`, rồi so với cách tính ở mục 6.3.
 - [ ] Kiểm tra kết quả khớp Table 2 của đề.
 
 ### Step 4: Phần Data
+
 - [ ] `read_instance` lấy `c(a)` và topology từ net, `ν(d,0)` từ tm, `maxSeg` từ scenario. Sau đó gọi `split_coefficients`.
 
 ### Step 5: Mô hình chỉ có t = 0 (ràng buộc 1–3, không có 4)
+
 - [ ] Gọi `build_model(inst, [r0])`. Trên toy phải ra MLU = 0.375.
 
 ### Step 6: Thí nghiệm SetA tại t = 0 (time limit 1800 s)
+
 - [ ] Chạy 10 lần mỗi instance và lập bảng: `|V|, |A|, |D|`, Obj, CPU (chỉ tính `optimize!`), Status, Gap = `1 − LB/UB`, số nút B&B.
 
 ### Step 7: Đồ thị và tham số tại t = 1
+
 - [ ] Bỏ các link trong `q(1)`, tính `r1 = split_coefficients(inst, inst.down[1])`, lấy `ν(d,1)` và `κ(1)`.
 
 ### Step 8: Mô hình hai chu kỳ (t = 0, 1) có budget
+
 - [ ] Gọi `build_model(inst, [r0, r1])`, trong đó ràng buộc (4) đã được tuyến tính hoá.
 
 ### Step 9: Thí nghiệm SetA với t = 0 và t = 1 (time limit 3600 s)
+
 > Trong `readme.txt` ghi "only time period 0", nhiều khả năng là chép nhầm từ Step 6. Nên hỏi lại giảng viên.
+
 - [ ] Lập bảng giống Step 6.
 
 ### Báo cáo (tối đa 10 trang), nộp trước Chủ nhật 25/10/2026
+
 - [ ] **Introduction**: bối cảnh, động lực, mô tả bài toán (dùng mục 1–3).
 - [ ] **Mathematical model**: dữ liệu, biến, mục tiêu, ràng buộc, giải thích chi tiết kèm phần tuyến tính hoá (mục 4).
 - [ ] **Numerical experiments**: mô tả instances, môi trường chạy, các bảng kết quả trung bình 10 lần (CPU time, Gap, số nút B&B).
@@ -607,15 +635,15 @@ math_modeling/
 ├── README.md
 ├── readme.txt
 ├── Challenge_Orange_ROADEF_2026_Subject.pdf
-├── calculating_r.pdf          # cần bổ sung
-├── instances/
-│   ├── toy/                   # toy-net.json, toy-tm.json, toy-scenario.json
-│   └── setA/                  # cần bổ sung
+├── calculating_r.pdf
+├── json_to_graph_pluto_v2.jl  # notebook Pluto, đồ thị đơn
+├── json_to_multigraph_pluto.jl # notebook Pluto, multigraph
+├── setA/                      # 20 instance (net, tm, scenario), summary.png
+├── toy/                       # cần tạo: toy-net.json, toy-tm.json, toy-scenario.json
 ├── src/
 │   ├── data.jl                # read_instance, split_coefficients
 │   ├── model.jl               # build_model, solve_and_report, waypoints
 │   └── run_experiments.jl     # Step 6 và Step 9, xuất CSV
-├── notebooks/                 # notebook Pluto
 ├── results/                   # CSV kết quả
 └── report/                    # báo cáo
 ```
