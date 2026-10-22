@@ -87,7 +87,7 @@ case "$cmd" in
     all)
         "$0" step6 all && "$0" step9 all ;;
     status)
-        for f in results/step6.csv results/step9.csv; do
+        for f in "${RESULTS_DIR:-results}/step6.csv" "${RESULTS_DIR:-results}/step9.csv"; do
             [[ -f "$f" ]] || { echo "($f chưa có)"; continue; }
             echo "== $f"
             column -s, -t < <(cut -d, -f1,2,4,6,7,8,9,11,12,14 "$f") 2>/dev/null || cat "$f"
