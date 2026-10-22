@@ -193,7 +193,7 @@ Cung a = (x → y) nằm trên một đường ngắn nhất tới đích  ⟺  
 
 Tập hợp mọi cung "có" gọi là **forwarding graph**, viết là `FG(v0, v5)`: đồ thị chuyển tiếp từ v0 tới v5.
 
-### 4.4 ECMP: chia đều tại mỗi ngã rẽ
+### 4.4 ECMP: chia đều tại mỗi ngã rẽ (cách của đề bài)
 
 Đặt **1 đơn vị** dữ liệu tại v0 rồi cho nó chảy về v5, chỉ đi trên các cung "có". Mỗi khi tới một nút có nhiều cung "có" đi ra, **chia đều** lượng đang có:
 
@@ -228,22 +228,65 @@ Tương tự, `r(v2, v5, ·, 0)`: a2,4 = 1; a4,3 = a4,6 = 0.5; a3,5 = a6,5 = 0.5
 1. **r là dữ liệu, không phải biến.** r chỉ phụ thuộc vào mạng (ω và các cung còn sống), không phụ thuộc vào việc ta chọn waypoint nào. Vì vậy ta tính r **một lần trước**, rồi dùng như hằng số.
 2. **Phải tính r cho mọi cặp nút (u, v)**, không chỉ cặp (nguồn, đích) của demand. Lý do: cặp nào cũng có thể trở thành một segment (xem Phần 6). Toy có 7 × 6 = 42 cặp, nên tính 42 bảng r.
 
-### 4.6 Cách của `calculating_r.pdf`, và vì sao nó khác
+### 4.6 Hai cách tính r: của đề bài và của `calculating_r.pdf`
 
-Tài liệu của giảng viên tính r bằng cách **đếm số đường**:
+**Tóm tắt trước:** project **không tự nghĩ ra cách tính mới**. Có **hai tài liệu**, và mỗi tài liệu mô tả **một cách tính r khác nhau**:
+
+| | **Cách 1: ECMP** | **Cách 2: đếm đường** |
+|---|---|---|
+| Lấy từ | **Đề bài** `Challenge_Orange_ROADEF_2026_Subject.pdf` (trang 2, đoạn "Forwarding graph & ECMP", và Table 2) | **Tài liệu giảng viên** `calculating_r.pdf` |
+| Chia đều dữ liệu cho | từng **ngã rẽ** (tại mỗi nút) | từng **đường** ngắn nhất |
+| Mô tả trong file này | mục 4.4 ở trên | mục này |
+| Kết quả cho cung a3,5 (toy, v0 → v5) | **0.75**, khớp Table 2 của đề | **0.667** |
+| Tên hàm trong code | `r_ecmp` | `r_pathcount` |
+
+**Ví dụ để thấy khác nhau.** Từ v0 tới v5 có 3 đường cùng ngắn nhất (độ dài 400):
 
 ```
-r(i, j, a) = σ(i, u) · σ(v, j) / σ(i, j)      nếu cung a = (u → v) nằm trên đường ngắn nhất từ i tới j
+Đường A:  v0 → v1 → v3 → v5
+Đường B:  v0 → v1 → v4 → v3 → v5
+Đường C:  v0 → v1 → v4 → v6 → v5
 ```
 
-- **Đọc là:** "r bằng xích-ma i u nhân xích-ma v j, chia xích-ma i j".
-- `σ(i, j)` (xích-ma) = **số** đường ngắn nhất từ i tới j.
-- **Nghĩa là:** (số đường ngắn nhất đi qua cung a) ÷ (tổng số đường ngắn nhất). Có σ(i,u) cách đi từ i tới u, đi qua cung a, rồi σ(v,j) cách đi từ v tới j.
-- **Ví dụ số** cho cung a3,5, từ v0 tới v5: σ(v0,v3) = 2 (qua v1 → v3 hoặc v1 → v4 → v3), σ(v5,v5) = 1, σ(v0,v5) = 3. Vậy r = 2 · 1 / 3 = **0.667**.
+**Cách 2, đếm đường** (`calculating_r.pdf`): có 3 đường, nên **mỗi đường nhận 1/3**. Cung a3,5 nằm trên đường A và B, nên r = 1/3 + 1/3 = **2/3 ≈ 0.667**.
 
-Nhưng ECMP cho **0.75**. Lý do: cách đếm đường coi **mỗi đường nhận 1/3**, còn ECMP chia đôi **tại mỗi ngã rẽ**, nên ba đường nhận 1/2, 1/4 và 1/4. Đề bài (Table 2) dùng ECMP. Project dùng ECMP cho mô hình.
+Công thức trong `calculating_r.pdf` tính đúng con số này mà không cần liệt kê từng đường:
 
-Trên dữ liệu SetA thật, hai cách gần như luôn ra cùng kết quả, vì ở đó hiếm khi có hai đường cùng ngắn nhất.
+```
+r(i, j, a) = σ(i, u) · σ(v, j) / σ(i, j)      với cung a = (u → v) nằm trên đường ngắn nhất từ i tới j
+```
+
+- `σ(i, j)` (đọc là "xích-ma") = **số** đường ngắn nhất từ i tới j.
+- `σ(i, u) · σ(v, j)` = số đường ngắn nhất **đi qua cung a**: có σ(i,u) cách đi từ i tới u, đi cung a, rồi có σ(v,j) cách đi tiếp từ v tới j.
+- Với cung a3,5: σ(v0, v3) = 2 (đường A và B), σ(v5, v5) = 1, σ(v0, v5) = 3. Vậy r = 2 × 1 / 3 = 0.667.
+
+**Cách 1, ECMP** (đề bài): dữ liệu **chia đôi mỗi khi gặp ngã rẽ**, không quan tâm phía sau còn bao nhiêu đường:
+
+```
+Tại v1: hai ngã rẽ (đi v3, đi v4)   → mỗi ngã 1/2
+          ngã v3 → chính là đường A                    : 1/2
+          ngã v4 → tới v4 lại có hai ngã (đi v3, đi v6) → mỗi ngã 1/2 × 1/2 = 1/4
+                     đường B (qua v4 → v3)               : 1/4
+                     đường C (qua v4 → v6)               : 1/4
+```
+
+Ba đường nhận **1/2, 1/4, 1/4**, không đều nhau. Cung a3,5 nằm trên A và B, nên r = 1/2 + 1/4 = **0.75**.
+
+**Vì sao đề dùng ECMP:** router thật chỉ biết **các ngã rẽ của chính nó** và chia đều cho các ngã đó. Nó không biết phía sau còn bao nhiêu đường. Giống nước chảy trong ống: tới chỗ chia đôi thì chia đôi, không "đếm" trước số lối ra phía sau. Vì vậy ECMP mô tả đúng cách mạng thật hoạt động, và Table 2 của đề cũng được tính theo cách này.
+
+**Khi nào hai cách ra cùng kết quả:**
+
+- Khi chỉ có **một** đường ngắn nhất: không có ngã rẽ nào, nên cả hai cách đều cho r = 1 trên đường đó.
+- Khi các ngã rẽ **cân đối**, tức mỗi ngã dẫn tới cùng số đường phía sau.
+
+Trên SetA, đường ngắn nhất hầu như luôn duy nhất. Đã kiểm tra mọi cặp nút: hai cách chỉ khác nhau ở **1 cặp trong setA-18 và 1 cặp trong setA-20**, và hai cặp này không phải cặp nguồn–đích của demand nào. Vì vậy kết quả thí nghiệm gần như không đổi dù dùng cách nào. Chỉ trên ví dụ toy là hai cách khác nhau rõ.
+
+**Project làm gì:**
+
+- Cài **cả hai** cách, để cho thấy đã làm theo hướng dẫn của giảng viên.
+- **Mô hình dùng Cách 1 (ECMP)**, vì nó đúng với định nghĩa và Table 2 của đề.
+- Lệnh `scripts/run.sh test` in kết quả của cả hai cách cạnh nhau.
+- Nên hỏi giảng viên: *"Table 2 của đề chia luồng đều tại mỗi nút, còn calculating_r.pdf chia đều theo số đường. Em dùng cách nào ạ?"*
 
 ---
 

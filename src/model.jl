@@ -6,13 +6,17 @@ using JuMP, HiGHS
 # rs = [r0]      -> Step 5 (chỉ t = 0, không có ràng buộc budget)
 # rs = [r0, r1]  -> Step 8 (t = 0 và t = 1, có ràng buộc budget (4))
 function build_model(inst::Instance, rs::Vector{SplitCoef}; time_limit = 1800.0, seed = 0, silent = true,
-                     aggregate = false, warm_start = true, heuristic_effort = 0.05)
+                     aggregate = false, warm_start = true, heuristic_effort = 0.05,
+                     no_loops = false, options = Dict{String,Any}())
     D = length(inst.src)
     T = 0:length(rs)-1
     model = Model(HiGHS.Optimizer)
     set_time_limit_sec(model, time_limit)
     set_attribute(model, "random_seed", seed)
     set_attribute(model, "mip_heuristic_effort", heuristic_effort)   # mặc định của HiGHS là 0.05
+    for (k, v) in options                          # tuỳ chọn HiGHS thêm (ví dụ "mip_lp_solver" => "ipm")
+        set_attribute(model, k, v)
+    end
     silent && set_silent(model)
 
     @variable(model, U >= 0)                       # MLU cần cực tiểu
@@ -32,6 +36,22 @@ function build_model(inst::Instance, rs::Vector{SplitCoef}; time_limit = 1800.0,
         for d in 1:D, i in 1:inst.n
             rhs = i == inst.src[d] ? 1 : (i == inst.dst[d] ? -1 : 0)
             @constraint(model, sum(xt[d, p] for p in out_of[i]) - sum(xt[d, p] for p in in_to[i]) == rhs)
+        end
+
+        # (1') no_loops: cấm đường đi qua một nút hai lần (áp dụng cho mọi chu kỳ trong mô hình).
+        #  - Một chu kỳ (Step 5-6): KHÔNG làm mất nghiệm tối ưu, vì bỏ một vòng lặp chỉ làm tải giảm
+        #    (r ≥ 0). Mô hình chặt hơn nhiều nên giải nhanh hơn rất nhiều (setA-02: 364 s -> 5 s).
+        #  - Hai chu kỳ (Step 8-9): về lý thuyết có thể làm mất nghiệm tối ưu, vì với budget đôi khi
+        #    cần đi vòng (Benhamiche et al. 2026, Fig. 1). Khi đó mô hình là một phiên bản hạn chế.
+        if no_loops
+            for d in 1:D
+                for p in in_to[inst.src[d]];  fix(xt[d, p], 0.0; force = true); end   # không quay lại nguồn
+                for p in out_of[inst.dst[d]]; fix(xt[d, p], 0.0; force = true); end   # không đi tiếp từ đích
+                for i in 1:inst.n
+                    i == inst.src[d] && continue
+                    @constraint(model, sum(xt[d, p] for p in in_to[i]) <= 1)            # vào mỗi nút tối đa 1 lần
+                end
+            end
         end
 
         # (2) số segment tối đa
