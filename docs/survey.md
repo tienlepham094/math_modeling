@@ -2,7 +2,7 @@
 
 Tài liệu này tổng hợp các hướng tiếp cận đã có trong tài liệu khoa học cho bài toán **T-Adaptive Segment Routing (T-ASR)** của ROADEF/EURO Challenge 2026 và bài toán gốc **Segment Routing Traffic Engineering (SR-TE)**. Mỗi mục ghi rõ ý tưởng chính, liên hệ với project này và link tới paper.
 
-> Phần mô tả mỗi paper dựa trên abstract và trang công bố. Những chi tiết đánh dấu *(chưa đọc full text)* cần kiểm tra lại trong bản PDF trước khi trích dẫn trong báo cáo.
+> Hai paper chính về T-ASR (mục 2) **đã được đọc bản đầy đủ** ngày 21/10/2026. Các paper khác được mô tả dựa trên abstract và trang công bố; chi tiết đánh dấu *(chưa đọc full text)* cần kiểm tra lại trong bản PDF trước khi trích dẫn.
 
 **Mục lục**
 
@@ -28,30 +28,46 @@ Tài liệu này tổng hợp các hướng tiếp cận đã có trong tài li�
   - Thông báo trên EURO: <https://www.euro-online.org/bb/topic/34833>
   - Trang EURO về challenge: <https://euro-online.org/web/pages/1707/roadefeuro-challenge>
 
-- **Liên hệ project.** Đề trong `Challenge_Orange_ROADEF_2026_Subject.pdf` dùng mục tiêu lex-min trên vector tải. Project này chỉ dùng thành phần đầu tiên là MLU (README mục 4.3). Checker và Networktools có thể dùng để kiểm tra nghiệm của mô hình Julia.
+- **Liên hệ project.** Đề trong `Challenge_Orange_ROADEF_2026_Subject.pdf` dùng mục tiêu lex-min trên vector tải. Project này chỉ dùng thành phần đầu tiên là MLU (báo cáo mục 2.4). Checker và Networktools có thể dùng để kiểm tra nghiệm của mô hình Julia.
 
 ## 2. Paper trực tiếp về T-ASR (2026)
 
 Đây là hai nguồn gần nhất với project và nên đọc đầu tiên.
 
-### 2.1 Benhamiche et al., *On the T-Adaptive Segment Routing Problem* (arXiv, 09/2026)
+### 2.1 Benhamiche et al., *On the T-Adaptive Segment Routing Problem* (arXiv 2609.32896, 09/2026), đã đọc bản đầy đủ
 
 - **Tác giả:** A. Benhamiche, K. Bouaachra, Y. Carlinet, M. Chopin, E. Gourdin, N. Perrot (nhóm ra đề challenge).
 - **Link:** <https://arxiv.org/abs/2609.32896>
-- **Nội dung:**
-  - Định nghĩa T-ASR: chuỗi segment path thích ứng với lịch bảo trì nhiều chu kỳ, số thay đổi giữa hai chu kỳ bị giới hạn bởi budget.
-  - Mục tiêu **lexicographic** trên vector tải đã sắp xếp, không chỉ MLU.
-  - **Phân rã** bài toán thành chuỗi bài toán con, mỗi bài toán con là một MILP. Có hai công thức MILP tên **ALEXA** và **STELA**, so sánh trên instance nhỏ và vừa.
-- **Liên hệ project:** đây là nguồn chính thức cho mô hình ở README mục 4. Nên so sánh công thức của mình (luồng trên đồ thị đầy đủ `H`) với ALEXA/STELA *(chưa đọc full text)*.
+- **Nội dung chính:**
+  - Mô hình (1)–(4) trong paper **trùng hoàn toàn** với đề, và với mô hình của project.
+  - **Độ phức tạp:** T-ASR tổng quát hoá MIN SEGMENT ROUTING, nên NP-khó và khó xấp xỉ, ngay cả trên topology đơn giản (dẫn Bazgan et al., INFOCOM 2025).
+  - **Mục tiêu lexicographic** được giải bằng chuỗi MILP, mỗi MILP tối ưu một hạng của vector tải:
+    - **ALEXA**: ma trận hoán vị kèm big-M.
+    - **STELA**: ràng buộc "vượt ngưỡng", λ↓_k = min{z : số tải vượt z ≤ k−1}. STELA tốt hơn ALEXA ở 109/115 instance.
+    - Bước đầu tiên của cả hai chính là **min MLU**, đúng như project.
+  - **Vòng lặp trong segment path có thể bắt buộc** khi có budget (Fig. 1 của paper). Vì vậy tiền xử lý loại path bị trội của Callebaut et al. 2023 không áp dụng được cho bài toán nhiều chu kỳ.
+  - **Thí nghiệm:** tập setAP (10–50 nút, 10–50 demand), Gurobi 13, giới hạn 20 phút. Quy mô này nhỏ hơn SetA nhiều.
+- **Tài nguyên công khai:**
+  - Instance: <https://doi.org/10.5281/zenodo.19219524>
+  - Code STELA/ALEXA (Python + Gurobi): <https://github.com/kaoutarbouaachra/T-ASR-STELA-ALEXA-DRCN>
+  - Thư viện networktools: <https://gitlab.com/Orange-OpenSource/network-optimization-tools/networktools>
+- **Liên hệ project:** nguồn chính thức cho mô hình (báo cáo mục 2) và cho lập luận "min MLU là bước đầu của lex-min".
 
-### 2.2 Jaumard, Tran, Ziazet, *Segment Routing Traffic Engineering with Time-Based Reconfiguration Constraints* (arXiv, 10/2026, IEEE LATINCOM 2026)
+### 2.2 Jaumard, Tran, Ziazet, *Segment Routing Traffic Engineering with Time-Based Reconfiguration Constraints* (arXiv 2610.04759, 10/2026), đã đọc bản đầy đủ
 
 - **Link:** <https://arxiv.org/abs/2610.04759>
-- **Nội dung:**
-  - Mục tiêu **MLU**, giới hạn số segment thay đổi giữa hai chu kỳ liên tiếp khi link bị tắt để bảo trì, đúng như project này.
-  - Phương pháp **column generation**.
-  - Thử trên dữ liệu thực của Orange, tới **1 263 nút và 15 000 demand**. Gap dưới 5% ở 80,45% trong 133 lần đánh giá (instance × chu kỳ).
-- **Liên hệ project:** cùng mục tiêu MLU và ràng buộc budget như Step 8. Là hướng mở rộng khi MILP trực tiếp không giải nổi các instance lớn của SetA.
+- **Nội dung chính:**
+  - Mục tiêu **MLU** và budget thay đổi giữa hai chu kỳ, đúng như project.
+  - **Giải tuần tự theo chu kỳ:** tối ưu chu kỳ t, coi routing tại t−1 là cố định. Nhờ vậy budget thành một ràng buộc tuyến tính mà không cần biến y.
+  - **Column generation:**
+    - Master chọn một cấu hình (segment path) cho mỗi demand.
+    - Pricing tìm đường đi có tối đa maxSeg cung trên đồ thị segment `K_t` (chính là đồ thị `H` trong [GIAI_THICH_TU_DAU.md](GIAI_THICH_TU_DAU.md), mục 8.1).
+    - Sau đó giải ILP trên tập cột cuối (price-and-branch).
+  - **Chạy trên chính SetA** (và một phần SetB). Kết quả trên SetA, đo bằng gap LP–ILP:
+    - t = 0: 85% trường hợp có gap ≤ 1%, gap trung bình 3.12%.
+    - t = 1: 45% trường hợp có gap ≤ 1%, gap trung bình 13.05%.
+    - Số cột sinh ra: 6.9 nghìn – 2.4 triệu.
+- **Liên hệ project:** cho thấy **t = 1 khó hơn t = 0** vì budget, và là hướng mở rộng chính cho các instance mà MILP đầy đủ không dựng được. Lưu ý gap của họ là gap LP–ILP trên tập cột, không phải gap MILP.
 
 ## 3. Mô hình chính xác: MILP / ILP
 
@@ -75,7 +91,7 @@ Tài liệu này tổng hợp các hướng tiếp cận đã có trong tài li�
 - **Tài liệu:**
   - Jadin, Aubry, Schaus, Bonaventure, *CG4SR: Near Optimal Traffic Engineering for Segment Routing with Column Generation*, IEEE INFOCOM 2019. PDF: <https://inl.info.ucl.ac.be/system/files/cg4sr.pdf> — trang: <https://research.dial.uclouvain.be/handle/2078.5/256488>
   - Jaumard et al. 2026 (mục 2.2): mở rộng column generation cho nhiều chu kỳ có budget.
-- **Liên hệ project:** pricing DP chính là bài toán "chọn đường trong `H` với tối đa `maxSeg` cung" ở README mục 2.4. Có thể dùng để sinh tập path ứng viên rồi giải MILP trên tập đó (price-and-branch) nếu MILP đầy đủ quá lớn.
+- **Liên hệ project:** pricing DP chính là bài toán "chọn đường trong `H` với tối đa `maxSeg` cung" ([GIAI_THICH_TU_DAU.md](GIAI_THICH_TU_DAU.md), mục 8.1). Có thể dùng để sinh tập path ứng viên rồi giải MILP trên tập đó (price-and-branch) nếu MILP đầy đủ quá lớn.
 
 ## 5. Heuristic và local search
 
@@ -104,7 +120,7 @@ Tài liệu này tổng hợp các hướng tiếp cận đã có trong tài li�
 
 - Fortz, Thorup, *Internet Traffic Engineering by Optimizing OSPF Weights*, IEEE INFOCOM 2000, tr. 519–528. Paper kinh điển về TE bằng shortest path + ECMP, chứng minh NP-khó và đề xuất local search.
 - Fortz, Rexford, Thorup, *Traffic Engineering with Traditional IP Routing Protocols*, IEEE Communications Magazine 2002. PDF: <https://www.cs.princeton.edu/~jrex/papers/ieeecomm02.pdf>
-- **Liên hệ project:** nguồn trích dẫn cho cách chia luồng ECMP và cách tính `r` (README mục 2.2, 6.3), dùng trong phần Introduction của báo cáo.
+- **Liên hệ project:** nguồn trích dẫn cho cách chia luồng ECMP và cách tính `r` ([GIAI_THICH_TU_DAU.md](GIAI_THICH_TU_DAU.md)), dùng trong phần Introduction của báo cáo.
 
 ## 9. Survey và luận án tổng quan
 
@@ -125,13 +141,24 @@ Tài liệu này tổng hợp các hướng tiếp cận đã có trong tài li�
 
 ## 11. Gợi ý áp dụng cho project
 
-Đề yêu cầu cài **mô hình MILP** và báo cáo CPU time, gap, số nút B&B (Step 5–9). Vì vậy hướng chính vẫn là MILP ở README mục 4. Các hướng khác dùng để hỗ trợ:
+Đề yêu cầu cài **mô hình MILP** và báo cáo CPU time, gap, số nút B&B (Step 5–9). Vì vậy hướng chính vẫn là MILP ([GIAI_THICH_TU_DAU.md](GIAI_THICH_TU_DAU.md), Phần 8). Các hướng khác dùng để hỗ trợ:
 
-1. **Bắt buộc:** MILP trên đồ thị segment `H` (README mục 4–6). So sánh công thức với ALEXA/STELA của Benhamiche et al. để viết phần Mathematical model.
+1. **Bắt buộc:** MILP trên đồ thị segment `H` ([GIAI_THICH_TU_DAU.md](GIAI_THICH_TU_DAU.md)). So sánh công thức với ALEXA/STELA của Benhamiche et al. để viết phần Mathematical model.
 2. **Giảm kích thước mô hình:**
-   - Chỉ tạo biến cho segment có đường đi (README mục 4.5.1).
+   - Chỉ tạo biến cho segment có đường đi ([GIAI_THICH_TU_DAU.md](GIAI_THICH_TU_DAU.md)).
    - Bỏ hệ số `r` bằng 0 khi xây ràng buộc tải.
    - Thử giới hạn `maxSeg = 2` (Bhatia 2015) như một biến thể, để so sánh trong báo cáo.
 3. **Warm start:** dùng nghiệm ECMP mặc định (không waypoint) hoặc một local search đơn giản (Gay 2017) làm nghiệm khởi đầu cho solver.
 4. **Nếu instance lớn không giải được trong 1800/3600 s:** ghi gap theo yêu cầu đề. Nhắc column generation (CG4SR, Jaumard 2026) trong phần thảo luận như hướng mở rộng.
 5. **Trích dẫn trong Introduction:** Fortz & Thorup 2000 (ECMP/OSPF), Ventre 2021 (SR), Benhamiche 2026 (T-ASR), trang ROADEF challenge.
+
+## 12. Tài liệu bổ sung (tìm thấy khi đọc hai paper 2026)
+
+| Tài liệu | Vì sao cần |
+|---|---|
+| Callebaut, De Boeck, Fortz, *Preprocessing for segment routing optimization*, Networks 82(4):459–478, 2023 | Loại segment path bị trội, thu nhỏ MILP **một chu kỳ** (Step 5–6). Không áp dụng được cho nhiều chu kỳ (Benhamiche 2026). |
+| Bazgan, Chopin, Nichterlein, Richer, *Parameterized complexity of segment routing*, IEEE INFOCOM 2025 | Kết quả về độ khó, dùng trong Introduction |
+| Schüller, Aschenbruck, Chimani, Horneffer, *Failure resiliency with only a few tunnels: enabling segment routing for traffic engineering*, IEEE/ACM ToN 29(1):262–274, 2021 | MILP min-MLU có tính đến hỏng link, gần với t = 1 |
+| Li, Yeung, *Traffic engineering in segment routing networks using MILP*, IEEE TNSM 17(3):1941–1953, 2020 | Một công thức MILP cho SR-TE để so sánh |
+| Pereira, Rocha, Sousa, *Traffic engineering with three-segments routing*, IEEE TNSM 17(3):1896–1909, 2020 | Heuristic cho path 3 segment, có xử lý hỏng link |
+| Filsfils et al., *Segment Routing Architecture*, RFC 8402, 2018 | Định nghĩa chuẩn của Segment Routing (đề trích dẫn) |
