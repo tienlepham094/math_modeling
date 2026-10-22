@@ -248,7 +248,8 @@ Inst & $|V|$ & $|A|$ & $|D|$ & $\kappa(1)$ & \#biến $x$ ($t$=0) & Inst & $|V|$
   \item Instance chạm giới hạn thời gian chỉ chạy 1 lần, vì 10 lần $\times$ 1800--3600\,s vượt quá thời gian có được.
   \end{itemize}
 \item \textbf{Giới hạn bộ nhớ}: mô hình có hơn $5\cdot10^6$ biến không được dựng, vì riêng việc dựng mô hình $4.5\cdot10^6$ biến trong JuMP đã tốn 3.3\,GB RAM, và HiGHS cần thêm một bản sao khi giải.
-\item \textbf{Chốt chặn cứng}: với mô hình lớn, HiGHS có thể vượt giới hạn thời gian, vì nó không kiểm tra giới hạn trong lúc presolve và giải LP gốc. Vì vậy mỗi instance chạy trong một tiến trình riêng, và bị dừng nếu vượt $2\times$ giới hạn $+\,3600$\,s.
+\item \textbf{Ràng buộc bổ sung ở Step 6}: với một chu kỳ, thêm ràng buộc mỗi segment path đi qua mỗi nút tối đa một lần ($\sum_{j} x^{d0}_{ji}\le 1$, không quay lại nguồn, không đi tiếp từ đích). Ràng buộc này không làm thay đổi giá trị tối ưu, vì bỏ một vòng lặp chỉ làm tải giảm ($r\ge 0$), nhưng làm mô hình chặt hơn và giải nhanh hơn nhiều (setA-02: 364\,s xuống 5\,s). Ở Step 9 không dùng, vì khi có budget, đường có vòng lặp có thể cần cho nghiệm tối ưu \cite{benhamiche2026}.
+\item \textbf{Chốt chặn cứng}: với mô hình lớn, HiGHS có thể vượt giới hạn thời gian, vì nó không kiểm tra giới hạn trong lúc presolve và giải LP gốc. Vì vậy mỗi instance chạy trong một tiến trình riêng, và bị dừng nếu vượt giới hạn thêm 900\,s.
 \end{itemize}
 
 \subsection{Kết quả với chu kỳ $t=0$ (Step 6)}

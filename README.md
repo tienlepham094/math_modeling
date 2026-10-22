@@ -43,6 +43,15 @@ scripts/run.sh test                                         # phải in "TẤT C
 scripts/run.sh step6 1 2 3
 ```
 
+### Cách C: chạy toàn bộ thí nghiệm trên server (chỉ cần Docker)
+
+```bash
+nohup scripts/run_server.sh > server_run.out 2>&1 &      # build image, test, Step 6, Step 9, sinh bảng
+tail -f server_run.out
+```
+
+Kết quả nằm ở `results/server/`. Chi tiết: [docs/CAI_DAT_VA_CHAY.md](docs/CAI_DAT_VA_CHAY.md), mục 6.2.
+
 Chi tiết, các lựa chọn khác và cách xử lý lỗi: [docs/CAI_DAT_VA_CHAY.md](docs/CAI_DAT_VA_CHAY.md).
 
 ---
@@ -74,6 +83,7 @@ math_modeling/
 ├── Dockerfile, .dockerignore     ← đóng gói Docker
 ├── Project.toml, Manifest.toml   ← danh sách thư viện Julia và phiên bản CHÍNH XÁC (đừng xoá)
 ├── scripts/run.sh                ← lệnh chung (mục 3)
+├── scripts/run_server.sh         ← chạy toàn bộ thí nghiệm trên server bằng Docker
 ├── src/
 │   ├── data.jl                   ← Step 2, 3, 4, 7: đọc JSON, dựng đồ thị G_t, tính r
 │   ├── model.jl                  ← Step 5, 8: mô hình MILP; giải; đọc waypoint

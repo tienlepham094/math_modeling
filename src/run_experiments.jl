@@ -18,6 +18,9 @@
 #   TIME_LIMIT   (1800 cho Step 6, 3600 cho Step 9) giới hạn thời gian mỗi lần chạy
 #   RESULTS_DIR  (results) thư mục ghi CSV, tính từ thư mục project
 #   FORCE        (0)       1 = chạy lại cả instance đã có trong CSV
+#   NO_LOOPS     (0)       1 = thêm ràng buộc "mỗi đường đi qua mỗi nút tối đa một lần".
+#                          Step 6: không làm đổi nghiệm tối ưu, nhanh hơn rất nhiều (setA-02: 364 s -> 5 s).
+#                          Step 9: là phiên bản hạn chế (có thể mất nghiệm tối ưu), xem src/model.jl.
 #
 # Instance đã có dòng trong CSV sẽ được bỏ qua (trừ khi FORCE=1), nên nếu máy bị
 # tắt giữa chừng thì chỉ cần gọi lại đúng lệnh cũ để chạy tiếp.
@@ -34,6 +37,7 @@ const FAST      = env("FAST", 300.0)
 const MAX_RUNS  = env("MAX_RUNS", 10)
 const HEURISTIC = env("HEURISTIC", 0.3)
 const FORCE     = env("FORCE", 0) == 1
+const NO_LOOPS  = env("NO_LOOPS", 0) == 1
 
 # MLU khi mọi demand đi thẳng s -> t (không waypoint): mốc để so sánh
 function mlu_no_waypoint(inst::Instance, r::SplitCoef, t::Int)
@@ -59,7 +63,7 @@ function main(args)
     isfile(csv) || write(csv, "instance,n,m,D,nvars,mlu_nowp,runs,status,obj,lb,gap,cpu_mean,cpu_std,nodes_mean,build_s\n")
     done = Set(first(split(l, ",")) for l in readlines(csv)[2:end] if !isempty(l))
 
-    println("Step $step | time limit $(tlim) s | MAX_VARS $(MAX_VARS) | FAST $(FAST) s | MAX_RUNS $(MAX_RUNS) | ghi vào $csv")
+    println("Step $step | time limit $(tlim) s | MAX_VARS $(MAX_VARS) | FAST $(FAST) s | MAX_RUNS $(MAX_RUNS) | NO_LOOPS $(NO_LOOPS) | ghi vào $csv")
     for k in ids
         name = @sprintf("setA-%02d", k)
         if name in done && !FORCE
@@ -88,7 +92,7 @@ function main(args)
         for seed in 0:MAX_RUNS-1
             GC.gc()
             tb = @elapsed (model, x, S) = build_model(inst, rs; time_limit = tlim, seed = seed,
-                                                       heuristic_effort = HEURISTIC)
+                                                       heuristic_effort = HEURISTIC, no_loops = NO_LOOPS)
             build_s = tb
             res = solve_and_report(model)
             push!(results, res)

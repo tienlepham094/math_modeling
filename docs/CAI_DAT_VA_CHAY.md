@@ -222,6 +222,7 @@ Mọi cấu hình đều **không bắt buộc**. Mặc định đúng với yê
 | `HEURISTIC` | `0.3` | Tham số `mip_heuristic_effort` của HiGHS (mặc định của HiGHS là 0.05). |
 | `RESULTS_DIR` | `results` | Thư mục ghi CSV và log, tính từ thư mục project. |
 | `FORCE` | `0` | `1` = chạy lại cả instance đã có kết quả. |
+| `NO_LOOPS` | `0` | `1` = thêm ràng buộc "mỗi đường đi qua mỗi nút tối đa một lần". Ở Step 6 ràng buộc này **không làm đổi giá trị tối ưu** mà giải nhanh hơn rất nhiều (setA-02: 364 s → 5 s). Ở Step 9 nó là phiên bản hạn chế, vì khi có budget đôi khi phải đi vòng. |
 | `JULIA` | tự tìm | Đường dẫn tới chương trình julia, nếu không nằm trong PATH. |
 
 Ví dụ:
@@ -242,7 +243,32 @@ FORCE=1 scripts/run.sh step9 3                              # chạy lại setA-
 - Instance "Too large" chỉ tốn vài giây.
 - Trên máy 16 GB: Step 6 khoảng 6–10 giờ, Step 9 khoảng 5–10 giờ.
 
-### 6.2 Chạy nền (không Docker)
+### 6.2 Chạy toàn bộ trên server: `scripts/run_server.sh` (khuyên dùng)
+
+Một lệnh làm hết: build Docker image → kiểm tra toy → ghi thông tin máy → Step 6 → Step 9 → sinh bảng LaTeX. Server **chỉ cần có Docker**.
+
+```bash
+git clone <repo> math_modeling && cd math_modeling      # hoặc chép thư mục lên server
+nohup scripts/run_server.sh > server_run.out 2>&1 &     # chạy nền, tắt SSH vẫn chạy tiếp
+tail -f server_run.out                                  # xem tiến độ
+```
+
+Mặc định của script:
+
+| Thiết lập | Giá trị | Đổi bằng |
+|---|---|---|
+| Chạy bằng | Docker | `USE_DOCKER=0` (dùng Julia cài trên server) |
+| Thư mục kết quả | `results/server/` | `RESULTS_DIR=...` |
+| Instance | cả 20 | `INSTANCES="1 2 3"` |
+| `MAX_VARS` | tự tính theo RAM trống (khoảng 1.5 GB cho mỗi triệu biến) | `MAX_VARS=...` |
+| `NO_LOOPS` | bật cho Step 6, tắt cho Step 9 | `NO_LOOPS_STEP6=0`, `NO_LOOPS_STEP9=1` |
+| Chốt chặn cứng | 2700 s (Step 6), 4500 s (Step 9), tức time limit + 15 phút | `HARD6=...`, `HARD9=...` |
+
+Kết quả: `results/server/step6.csv`, `step9.csv`, `logs/`, `env_info.txt` (thông tin máy cho báo cáo), và bảng `report/table_step6.tex`, `table_step9.tex`. Bị ngắt thì gọi lại đúng lệnh cũ: instance đã xong được bỏ qua.
+
+Lấy kết quả về máy mình: `scp -r <user>@<server>:<đường dẫn>/math_modeling/results/server ./results/` và `scp <user>@<server>:<đường dẫn>/math_modeling/report/table_step*.tex ./report/`.
+
+### 6.3 Chạy nền trên máy cá nhân (không Docker)
 
 ```bash
 nohup scripts/run.sh all > results/logs/all.out 2>&1 &
@@ -251,7 +277,7 @@ tail -f results/logs/all.out          # xem tiến độ
 
 Trên WSL: **giữ một cửa sổ terminal WSL mở**. Khi không còn cửa sổ nào, Windows có thể tắt WSL và dừng thí nghiệm. Với Docker thì dùng `docker run -d` (mục 3.4).
 
-### 6.3 Chạy tiếp sau khi bị ngắt
+### 6.4 Chạy tiếp sau khi bị ngắt
 
 Chỉ cần **gọi lại đúng lệnh cũ**:
 
@@ -260,7 +286,7 @@ Chỉ cần **gọi lại đúng lệnh cũ**:
 
 Muốn chạy lại một instance đã có kết quả thì xoá dòng của nó trong CSV, hoặc dùng `FORCE=1`.
 
-### 6.4 Trạng thái trong CSV
+### 6.5 Trạng thái trong CSV
 
 | `status` | Nghĩa |
 |---|---|
@@ -327,7 +353,7 @@ Docker image hiện tại **không** có Gurobi, vì license gắn với máy c�
 | Docker: `permission denied` khi ghi `results/` | Thư mục thuộc root, hoặc user không khớp | Thêm `--user "$(id -u):$(id -g)"`; hoặc `sudo chown -R $USER results` |
 | Docker build dừng ở bước `Pkg.precompile()` với `Killed` hoặc `returned a non-zero code: 137` | Hết RAM khi biên dịch thư viện | Build với ít luồng hơn: `docker build --build-arg PRECOMPILE_TASKS=1 -t orange-tasr .`; với Docker Desktop thì tăng Memory (mục 3.1) |
 | Docker: `Cannot connect to the Docker daemon` | Docker chưa chạy | Mở Docker Desktop, hoặc `sudo systemctl start docker` |
-| Thí nghiệm dừng giữa chừng khi đóng VS Code hoặc terminal | Tiến trình con bị tắt theo terminal | Dùng `nohup … &` (mục 6.2) hoặc `docker run -d` (mục 3.4). Chạy lại lệnh cũ để làm tiếp phần còn thiếu |
+| Thí nghiệm dừng giữa chừng khi đóng VS Code hoặc terminal | Tiến trình con bị tắt theo terminal | Dùng `nohup … &` (mục 6.3) hoặc `docker run -d` (mục 3.4). Chạy lại lệnh cũ để làm tiếp phần còn thiếu |
 | Pluto không mở được trong Docker | Thiếu `-p 1234:1234` | `docker run --rm -p 1234:1234 orange-tasr pluto` |
 
 ---
