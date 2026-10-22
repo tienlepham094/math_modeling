@@ -48,3 +48,7 @@ results/tmp/
 *.snm
 *.lof
 *.lot
+
+# Docker / LaTeX build, file tạm của thí nghiệm
+report/build/
+results/*.pending

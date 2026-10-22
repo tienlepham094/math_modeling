@@ -1,0 +1,11 @@
+# Script và code luôn dùng xuống dòng kiểu Linux (LF), kể cả khi clone trên Windows.
+# Nếu thiếu dòng này, scripts/run.sh có thể bị đổi sang CRLF và báo lỗi "bash\r: No such file".
+*.sh        text eol=lf
+*.jl        text eol=lf
+*.toml      text eol=lf
+Dockerfile  text eol=lf
+*.json      text eol=lf
+*.tex       text eol=lf
+*.md        text eol=lf
+*.pdf       binary
+*.png       binary
