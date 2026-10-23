@@ -352,6 +352,7 @@ Docker image hiện tại **không** có Gurobi, vì license gắn với máy c�
 | CPU time lớn hơn `TIME_LIMIT` | HiGHS không kiểm tra giới hạn khi đang presolve hoặc giải LP gốc của mô hình lớn | Bình thường với mô hình lớn. `HARD_LIMIT` sẽ chặn. Ghi chú trong báo cáo (bảng có dấu `*`) |
 | Docker: `permission denied` khi ghi `results/` | Thư mục thuộc root, hoặc user không khớp | Thêm `--user "$(id -u):$(id -g)"`; hoặc `sudo chown -R $USER results` |
 | Docker build dừng ở bước `Pkg.precompile()` với `Killed` hoặc `returned a non-zero code: 137` | Hết RAM khi biên dịch thư viện | Build với ít luồng hơn: `docker build --build-arg PRECOMPILE_TASKS=1 -t orange-tasr .`; với Docker Desktop thì tăng Memory (mục 3.1) |
+| `permission denied while trying to connect to the docker API at unix:///var/run/docker.sock` | User chưa thuộc nhóm `docker` | `sudo usermod -aG docker $USER && newgrp docker`; hoặc `DOCKER="sudo docker" scripts/run_server.sh`; không có sudo thì nhờ quản trị server, hoặc chạy không Docker (`USE_DOCKER=0`, mục 4) |
 | Docker: `Cannot connect to the Docker daemon` | Docker chưa chạy | Mở Docker Desktop, hoặc `sudo systemctl start docker` |
 | Thí nghiệm dừng giữa chừng khi đóng VS Code hoặc terminal | Tiến trình con bị tắt theo terminal | Dùng `nohup … &` (mục 6.3) hoặc `docker run -d` (mục 3.4). Chạy lại lệnh cũ để làm tiếp phần còn thiếu |
 | Pluto không mở được trong Docker | Thiếu `-p 1234:1234` | `docker run --rm -p 1234:1234 orange-tasr pluto` |
