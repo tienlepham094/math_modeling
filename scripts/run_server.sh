@@ -25,6 +25,7 @@ cd "$ROOT"
 # ---------------- Cấu hình (đổi bằng biến môi trường khi gọi) ----------------
 export RESULTS_DIR="${RESULTS_DIR:-results/server}"   # thư mục kết quả riêng cho server
 USE_DOCKER="${USE_DOCKER:-1}"                         # 1 = chạy bằng Docker (mặc định), 0 = Julia trên máy
+DOCKER="${DOCKER:-docker}"                            # "sudo docker" nếu user chưa thuộc nhóm docker
 INSTANCES="${INSTANCES:-all}"                         # ví dụ: INSTANCES="1 2 3 4 5"
 # Step 6: thêm ràng buộc "không đi vòng" (không đổi nghiệm tối ưu, nhanh hơn rất nhiều)
 NO_LOOPS_STEP6="${NO_LOOPS_STEP6:-1}"
@@ -47,11 +48,12 @@ log() { echo "[$(date '+%F %T')] $*"; }
 mkdir -p "$RESULTS_DIR/logs"
 if [[ "$USE_DOCKER" == "1" ]]; then
     command -v docker >/dev/null || { log "LỖI: server chưa có Docker"; exit 1; }
+    $DOCKER info >/dev/null 2>&1 || { log "LỖI: không dùng được Docker (permission denied?). Thử: DOCKER=\"sudo docker\" $0, hoặc xem docs/CAI_DAT_VA_CHAY.md mục 10"; exit 1; }
     # Luôn build lại để image khớp code hiện tại (có cache: lần đầu 10-20 phút, các lần sau vài giây)
     log "build Docker image orange-tasr"
-    docker build -t orange-tasr . 2>&1 | tail -3
+    $DOCKER build -t orange-tasr . 2>&1 | tail -3
     run() {   # chạy trong container; truyền mọi biến cấu hình vào; kết quả ghi ra thư mục thật
-        docker run --rm --user "$(id -u):$(id -g)" \
+        $DOCKER run --rm --user "$(id -u):$(id -g)" \
             -v "$ROOT/results:/app/results" -v "$ROOT/report:/app/report" \
             -e RESULTS_DIR -e MAX_VARS -e NO_LOOPS -e HARD_LIMIT -e TIME_LIMIT -e MAX_RUNS -e FAST \
             orange-tasr "$@"
