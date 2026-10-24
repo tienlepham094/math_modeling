@@ -63,9 +63,14 @@ case "$cmd" in
         hard="${HARD_LIMIT:-$(( ${tl%.*} * 2 + 3600 ))}"
         for id in "${ids[@]}"; do
             set +e
+            t_start=$(date +%s)
             timeout -s KILL "$hard" "${J[@]}" src/run_experiments.jl "$step" "$id" 2>&1 | tee -a "$outdir/logs/${cmd}.log"
             code=${PIPESTATUS[0]}
+            elapsed=$(( $(date +%s) - t_start ))
             set -e
+            # Với "-s KILL", GNU timeout trả về 137 (= 128 + 9) chứ không phải 124 khi hết giờ,
+            # nên phân biệt "quá HARD_LIMIT" và "hết RAM" bằng thời gian đã chạy.
+            (( code == 137 && elapsed >= hard - 5 )) && code=124
             pending="$outdir/step${step}.pending"
             # cột CSV: instance,n,m,D,nvars,mlu_nowp,runs,status,obj,lb,gap,cpu_mean,cpu_std,nodes_mean,build_s
             if [[ $code -eq 124 && -f "$pending" ]]; then

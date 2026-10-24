@@ -14,7 +14,8 @@
 #
 # Kết quả nằm trong results/server/:
 #   step6.csv, step9.csv, logs/, env_info.txt (thông tin máy cho báo cáo)
-# và bảng LaTeX report/table_step6.tex, report/table_step9.tex
+# và bảng LaTeX results/server/table_step6.tex, table_step9.tex
+# (không ghi đè bảng của báo cáo trong report/, vốn sinh từ results/)
 #
 # Chạy lại đúng lệnh này nếu bị ngắt: instance đã xong sẽ được bỏ qua.
 # =====================================================================
@@ -81,7 +82,7 @@ log "Step 9 bắt đầu"
 NO_LOOPS=$NO_LOOPS_STEP9 HARD_LIMIT=$HARD9 run step9 $INSTANCES
 log "Step 9 xong"
 
-# ---------------- 3. Bảng cho báo cáo + tóm tắt ----------------
+# ---------------- 3. Bảng LaTeX (ghi vào $RESULTS_DIR) + tóm tắt ----------------
 run tables
 RESULTS_DIR="$RESULTS_DIR" run status
-log "HOÀN TẤT. Kết quả: $RESULTS_DIR/step6.csv, $RESULTS_DIR/step9.csv; bảng: report/table_step*.tex"
+log "HOÀN TẤT. Kết quả: $RESULTS_DIR/step6.csv, $RESULTS_DIR/step9.csv; bảng: $RESULTS_DIR/table_step*.tex"
