@@ -1,0 +1,12 @@
+# Không đưa vào Docker image những thứ không cần để chạy
+.git
+.remember
+.trunk
+.vscode
+.idea
+results
+report/build
+*.pdf
+*.log
+docs
+**/*.backup
