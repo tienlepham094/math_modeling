@@ -90,10 +90,12 @@ math_modeling/
 │   ├── test_toy.jl               ← kiểm tra trên toy (lệnh test)
 │   ├── run_experiments.jl        ← Step 6, 9: chạy SetA, ghi CSV
 │   ├── make_tables.jl            ← CSV → bảng LaTeX
+│   ├── verify_solutions.jl       ← kiểm tra nghiệm độc lập: chu trình rời, tải tính lại, dist so với budget
 │   └── env_info.jl               ← thông tin máy và phần mềm
 ├── setA/                         ← 20 instance của giảng viên (3 file JSON mỗi instance)
 ├── toy/                          ← instance ví dụ của đề (7 nút, 2 demand)
-├── results/                      ← kết quả: step6.csv, step9.csv, logs/
+├── results/                      ← kết quả: step6.csv, step9.csv (mô hình của đề, dùng cho báo cáo), logs/;
+│                                    results/server/: biến thể không đi vòng (Docker), chỉ dùng cho bảng so sánh
 ├── report/                       ← báo cáo LaTeX: report.tex, table_step6.tex, table_step9.tex
 ├── docs/                         ← tài liệu (mục 1)
 ├── json_to_graph_pluto_v2.jl     ← notebook Pluto của giảng viên (đồ thị đơn)
@@ -103,11 +105,13 @@ math_modeling/
 
 ---
 
-## 5. Tình trạng hiện tại (22/10/2026)
+## 5. Tình trạng hiện tại (24/10/2026)
 
-- **Code:** đủ cho Step 1–9. Đã kiểm tra trên toy: khớp Table 2 của đề, MLU tối ưu 0.375.
-- **Thí nghiệm:** đang chạy trên máy gốc (Intel Core 7 240H, 16 GB RAM). Xem kết quả bằng `scripts/run.sh status`, phân tích trong [docs/PHAN_TICH_KET_QUA.md](docs/PHAN_TICH_KET_QUA.md).
+- **Code:** đủ cho Step 1–9. Đã kiểm tra trên toy: khớp Table 2 của đề, MLU tối ưu 0.375 (xác nhận bằng vét cạn).
+  - 24/10: sửa lỗi so sánh độ dài đường đi bằng `==` trong `src/data.jl` (instance có trọng số thực 05, 08, 12, 14 bị mất luồng ở hơn nửa số cặp nút; 05 không bị ảnh hưởng). Kết quả 01–05 vẫn đúng; setA-08 phải chạy bằng code mới.
+  - `src/verify_solutions.jl`: kiểm tra nghiệm độc lập (chu trình rời, tải tính lại, `dist` thật so với budget).
+- **Thí nghiệm:** Step 9 đủ 20/20. Step 6 còn thiếu setA-06, 08, 09 (chạy trên máy gốc Intel Core 7 240H bằng code mới, xem [docs/PHAN_TICH_KET_QUA.md](docs/PHAN_TICH_KET_QUA.md) mục 0). Xem kết quả bằng `scripts/run.sh status`.
 - **Giới hạn đã biết:**
   - Mô hình có khoảng `|D| × n²` biến, nên chỉ instance nhỏ dựng được: Step 6 được 8/20, Step 9 được 5/20 trên máy 16 GB.
   - HiGHS đôi khi chạy quá time limit với mô hình lớn hơn khoảng 1.5 triệu biến. Script có chốt chặn cứng để không treo máy.
-- **Báo cáo:** bản nháp tiếng Việt ở `report/report.tex`. Còn phải điền tên và viết nhận xét ở các chỗ `% TODO`.
+- **Báo cáo:** `report/report.tex` (9 trang) đã có nhận xét cho Step 6 và Step 9. Còn phải điền tên tác giả và nhận xét cho setA-06, 08, 09 (chỗ `[TODO]`).

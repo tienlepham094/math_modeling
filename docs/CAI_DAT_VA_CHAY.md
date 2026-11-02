@@ -264,9 +264,9 @@ Mặc định của script:
 | `NO_LOOPS` | bật cho Step 6, tắt cho Step 9 | `NO_LOOPS_STEP6=0`, `NO_LOOPS_STEP9=1` |
 | Chốt chặn cứng | 2700 s (Step 6), 4500 s (Step 9), tức time limit + 15 phút | `HARD6=...`, `HARD9=...` |
 
-Kết quả: `results/server/step6.csv`, `step9.csv`, `logs/`, `env_info.txt` (thông tin máy cho báo cáo), và bảng `report/table_step6.tex`, `table_step9.tex`. Bị ngắt thì gọi lại đúng lệnh cũ: instance đã xong được bỏ qua.
+Kết quả: `results/server/step6.csv`, `step9.csv`, `logs/`, `env_info.txt` (thông tin máy cho báo cáo), và bảng `results/server/table_step6.tex`, `table_step9.tex` (bảng của báo cáo trong `report/` không bị ghi đè; bảng đó sinh từ `results/` bằng `scripts/run.sh tables`). Bị ngắt thì gọi lại đúng lệnh cũ: instance đã xong được bỏ qua.
 
-Lấy kết quả về máy mình: `scp -r <user>@<server>:<đường dẫn>/math_modeling/results/server ./results/` và `scp <user>@<server>:<đường dẫn>/math_modeling/report/table_step*.tex ./report/`.
+Lấy kết quả về máy mình: `scp -r <user>@<server>:<đường dẫn>/math_modeling/results/server ./results/` (gồm cả bảng LaTeX).
 
 ### 6.3 Chạy nền trên máy cá nhân (không Docker)
 
@@ -373,4 +373,4 @@ Giá trị tham chiếu (máy gốc, HiGHS 1.15.1):
 | setA-01 | 0.929384 | 0.929384 |
 | setA-02 | 0.548578 | 0.903075 |
 | setA-03 | 0.943543 | 0.943543 |
-| setA-05 | 0.115524 | (đang chạy) |
+| setA-05 | 0.115524 | không có (bị dừng sau 10800 s) |
