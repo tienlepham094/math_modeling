@@ -34,15 +34,20 @@ Cả hai cách đều dùng cùng một lệnh chung `scripts/run.sh` và cho c�
 | Mạng | Cần khi cài hoặc build | | Chạy thí nghiệm thì không cần mạng |
 | Thời gian | | | Toàn bộ Step 6 + Step 9: từ vài giờ tới hơn 1 ngày tuỳ máy |
 
-**RAM và instance chạy được** (số đo thật: dựng mô hình 4.47 triệu biến tốn 3.3 GB, HiGHS cần thêm khoảng chừng đó khi giải; quy tắc gần đúng là **1.5 GB RAM cho mỗi triệu biến**):
+**RAM và instance chạy được.** Số đo RAM cao nhất của cả tiến trình (cgroup `memory.peak`, máy B, lượt 29/10–02/11/2026 dùng trong báo cáo, file `results/m1opt/main/seed*/memory_step*.csv`):
+- 3.7–4.0 GB cho mỗi triệu biến với các mô hình Step 6 trên 4 triệu biến (setA-06, 08, 09: 17.7–18.4 GB; setA-07: 30.0 GB);
+- 3.1–3.4 GB cho mỗi triệu biến với Step 9 setA-04, 05, 06, 08, 09 (5.1, 9.9, 47.5, 43.7, 42.0 GB; đo tới lúc bị chốt chặn dừng, nên có thể thấp hơn mức cao nhất thật);
+- mô hình nhỏ tốn thêm phần cố định: setA-05 Step 6 (0.99 triệu biến) tốn 4.5–7.2 GB.
+
+Quy tắc an toàn là **khoảng 4 GB RAM cho mỗi triệu biến, cộng 1.5 GB**. (Bản trước của tài liệu này ghi 1.5 GB cho mỗi triệu biến; con số đó quá thấp.)
 
 | RAM trống | `MAX_VARS` nên đặt | Step 6 chạy được | Step 9 chạy được |
 |---|---|---|---|
-| 4 GB | 2 000 000 | 01–05 | 01–04 |
-| 8 GB | 5 000 000 | 01–06, 08, 09 | 01–05 |
-| 16 GB | 10 000 000 | 01–09 | 01–05 |
-| 32 GB | 20 000 000 | 01–09, 11, 12 | 01–06, 08, 09 |
-| 64 GB | 40 000 000 | 01–12, 14, 15 | 01–09 |
+| 4 GB | 500 000 | 01–04 | 01–03 |
+| 8 GB | 1 500 000 | 01–05 | 01–04 |
+| 16 GB | 3 500 000 | 01–05 | 01–05 |
+| 32 GB | 8 000 000 | 01–09 (setA-07 sát giới hạn) | 01–05 |
+| 64 GB | 15 000 000 | 01–09 | 01–06, 08, 09 |
 
 Instance 13, 16–20 cần từ 80 triệu tới gần 1 tỉ biến, nên không máy tính thông thường nào chạy được mô hình này (xem [GIAI_THICH_TU_DAU.md](GIAI_THICH_TU_DAU.md), Phần 10). Lệnh `scripts/run.sh info` in ra `MAX_VARS` gợi ý dựa trên RAM đang trống của máy.
 
@@ -148,6 +153,18 @@ Mở trình duyệt tại http://localhost:1234, chọn `/app/json_to_graph_plut
 
 ### 3.6 Image có LaTeX để biên dịch báo cáo
 
+**Báo cáo chính** (`report/paper/paper.tex`, khuôn IEEE) cần thêm gói `texlive-publishers`:
+
+```bash
+docker build -t orange-tasr-report --target report .     # TeX Live (dùng chung với bản nháp cũ)
+docker build -t orange-tasr-paper -f Dockerfile.paper .   # thêm texlive-publishers (IEEEtran)
+docker run --rm --user "$(id -u):$(id -g)" -v "$PWD/report/paper:/work" -w /work \
+    --entrypoint bash orange-tasr-paper -c "pdflatex paper.tex && pdflatex paper.tex"
+# Kết quả: report/paper/paper.pdf
+```
+
+Bản nháp tiếng Việt cũ (`report/report.tex`, không còn dùng):
+
 ```bash
 docker build -t orange-tasr-report --target report .
 docker run --rm --user "$(id -u):$(id -g)" \
@@ -210,7 +227,7 @@ Lưu ý: gọi thẳng như vậy thì **không có chốt chặn cứng HARD_LI
 
 ## 5. Cấu hình bằng biến môi trường
 
-Mọi cấu hình đều **không bắt buộc**. Mặc định đúng với yêu cầu của đề.
+Mọi cấu hình đều **không bắt buộc**. Time limit mặc định đúng với yêu cầu của đề. Báo cáo chính dùng một quy trình chặt hơn: mỗi seed một tiến trình, `MAX_RUNS=1`, `SEED_START=k`, `HARD_LIMIT` = time limit + 900 s (2700 s, 4500 s; riêng Step 9 setA-06 là 5400 s, do `results/m1sync/schedule.py` đặt, khác mặc định ở bảng dưới), `MAX_VARS=20000000`. Xem [TAI_TAO_KET_QUA.md](TAI_TAO_KET_QUA.md), mục 1.
 
 | Biến | Mặc định | Ý nghĩa |
 |---|---|---|
@@ -218,11 +235,13 @@ Mọi cấu hình đều **không bắt buộc**. Mặc định đúng với yê
 | `TIME_LIMIT` | 1800 (Step 6), 3600 (Step 9) | Giới hạn thời gian của solver cho mỗi lần chạy (giây). **Đề yêu cầu đúng hai giá trị này.** Chỉ giảm khi muốn chạy thử nhanh. |
 | `HARD_LIMIT` | `2 × TIME_LIMIT + 3600` | Chốt chặn cứng (giây). Quá hạn này thì tiến trình bị dừng và ghi "Killed". Cần có vì HiGHS đôi khi không tôn trọng `TIME_LIMIT` với mô hình lớn (đã gặp: 9905 s với giới hạn 3600 s). |
 | `FAST` | `300` | Instance giải tối ưu trong dưới `FAST` giây thì được chạy lặp với seed khác. |
-| `MAX_RUNS` | `10` | Số lần chạy tối đa mỗi instance (đề yêu cầu trung bình 10 lần). |
+| `MAX_RUNS` | `10` | Số lần chạy tối đa mỗi instance trong **một** tiến trình (đề yêu cầu trung bình 10 lần). Báo cáo chính dùng `MAX_RUNS=1` và mỗi seed một tiến trình. |
+| `SEED_START` | `0` | Seed (`random_seed` của HiGHS) của lần chạy đầu; các lần sau dùng `SEED_START+1`, … |
+| `PERIOD1_ONLY` | `0` | `1` = với lệnh `step9`, chỉ giải chu kỳ t = 1, không budget (để so sánh). Ghi vào `step9.csv` của `RESULTS_DIR`, nên phải dùng thư mục riêng. |
 | `HEURISTIC` | `0.3` | Tham số `mip_heuristic_effort` của HiGHS (mặc định của HiGHS là 0.05). |
 | `RESULTS_DIR` | `results` | Thư mục ghi CSV và log, tính từ thư mục project. |
 | `FORCE` | `0` | `1` = chạy lại cả instance đã có kết quả. |
-| `NO_LOOPS` | `0` | `1` = thêm ràng buộc "mỗi đường đi qua mỗi nút tối đa một lần". Ở Step 6 ràng buộc này **không làm đổi giá trị tối ưu** mà giải nhanh hơn rất nhiều (setA-02: 364 s → 5 s). Ở Step 9 nó là phiên bản hạn chế, vì khi có budget đôi khi phải đi vòng. |
+| `NO_LOOPS` | `0` | `1` = thêm ràng buộc "mỗi đường đi qua mỗi nút tối đa một lần". Ở Step 6 ràng buộc này **không làm đổi giá trị tối ưu** mà giải nhanh hơn rất nhiều (setA-02: CPU trung bình 545.6 s → 28.5 s, Bảng V của báo cáo). Ở Step 9 nó là phiên bản hạn chế, vì khi có budget đôi khi phải đi vòng. |
 | `JULIA` | tự tìm | Đường dẫn tới chương trình julia, nếu không nằm trong PATH. |
 
 Ví dụ:
@@ -243,9 +262,11 @@ FORCE=1 scripts/run.sh step9 3                              # chạy lại setA-
 - Instance "Too large" chỉ tốn vài giây.
 - Trên máy 16 GB: Step 6 khoảng 6–10 giờ, Step 9 khoảng 5–10 giờ.
 
-### 6.2 Chạy toàn bộ trên server: `scripts/run_server.sh` (khuyên dùng)
+### 6.2 Chạy toàn bộ trên server: `scripts/run_server.sh` (quy trình cũ)
 
 Một lệnh làm hết: build Docker image → kiểm tra toy → ghi thông tin máy → Step 6 → Step 9 → sinh bảng LaTeX. Server **chỉ cần có Docker**.
+
+> Đây là quy trình ngày 26/10. Nó **không** tái tạo các bảng của báo cáo chính: Step 6 dùng `NO_LOOPS=1`, `MAX_VARS` 5 triệu, nhiều seed trong một tiến trình, và sinh bảng cũ `report/table_step*.tex`. Để tái tạo báo cáo chính, xem [TAI_TAO_KET_QUA.md](TAI_TAO_KET_QUA.md).
 
 ```bash
 git clone <repo> math_modeling && cd math_modeling      # hoặc chép thư mục lên server
@@ -260,13 +281,13 @@ Mặc định của script:
 | Chạy bằng | Docker | `USE_DOCKER=0` (dùng Julia cài trên server) |
 | Thư mục kết quả | `results/server/` | `RESULTS_DIR=...` |
 | Instance | cả 20 | `INSTANCES="1 2 3"` |
-| `MAX_VARS` | tự tính theo RAM trống (khoảng 1.5 GB cho mỗi triệu biến) | `MAX_VARS=...` |
+| `MAX_VARS` | `5000000` | `MAX_VARS=...` (mô hình gốc cần 3.1–4.0 GB RAM cho mỗi triệu biến) |
 | `NO_LOOPS` | bật cho Step 6, tắt cho Step 9 | `NO_LOOPS_STEP6=0`, `NO_LOOPS_STEP9=1` |
 | Chốt chặn cứng | 2700 s (Step 6), 4500 s (Step 9), tức time limit + 15 phút | `HARD6=...`, `HARD9=...` |
 
-Kết quả: `results/server/step6.csv`, `step9.csv`, `logs/`, `env_info.txt` (thông tin máy cho báo cáo), và bảng `results/server/table_step6.tex`, `table_step9.tex` (bảng của báo cáo trong `report/` không bị ghi đè; bảng đó sinh từ `results/` bằng `scripts/run.sh tables`). Bị ngắt thì gọi lại đúng lệnh cũ: instance đã xong được bỏ qua.
+Kết quả: `results/server/step6.csv`, `step9.csv`, `logs/`, `env_info.txt` (thông tin máy cho báo cáo), và bảng `report/table_step6.tex`, `table_step9.tex`. Bị ngắt thì gọi lại đúng lệnh cũ: instance đã xong được bỏ qua.
 
-Lấy kết quả về máy mình: `scp -r <user>@<server>:<đường dẫn>/math_modeling/results/server ./results/` (gồm cả bảng LaTeX).
+Lấy kết quả về máy mình: `scp -r <user>@<server>:<đường dẫn>/math_modeling/results/server ./results/` và `scp <user>@<server>:<đường dẫn>/math_modeling/report/table_step*.tex ./report/`.
 
 ### 6.3 Chạy nền trên máy cá nhân (không Docker)
 
@@ -304,13 +325,17 @@ Muốn chạy lại một instance đã có kết quả thì xoá dòng của n�
 |---|---|
 | `results/step6.csv`, `results/step9.csv` | Mỗi instance một dòng. Cột giải thích ở [PHAN_TICH_KET_QUA.md](PHAN_TICH_KET_QUA.md) |
 | `results/logs/step6.log`, `step9.log` | Kết quả từng lần chạy (từng seed) |
-| `report/table_step6.tex`, `table_step9.tex` | Bảng LaTeX sinh bởi `scripts/run.sh tables` |
+| `report/table_step6.tex`, `table_step9.tex` | Bảng LaTeX cũ, sinh bởi `scripts/run.sh tables` (bản nháp `report/report.tex`) |
+
+Nguồn của từng con số trong báo cáo chính (thư mục `results/m1opt/`, `results/runs/`, …): xem [results/README.md](../results/README.md).
 
 ---
 
 ## 8. Biên dịch báo cáo
 
-Báo cáo nằm ở `report/report.tex` (tiếng Việt). Có ba cách:
+**Báo cáo chính** là `report/paper/paper.tex` (tiếng Anh, khuôn IEEE). Sinh bảng bằng `python3 report/paper/make_tables_m1.py` và `python3 report/paper/make_tables_cg.py`, rồi biên dịch bằng image `orange-tasr-paper` (mục 3.6), hoặc tải thư mục `report/paper/` lên Overleaf (pdfLaTeX).
+
+Phần dưới đây là cho bản nháp tiếng Việt cũ `report/report.tex` (không còn dùng). Có ba cách:
 
 1. **Overleaf (dễ nhất):**
    - Chạy `scripts/run.sh tables`.
@@ -352,7 +377,6 @@ Docker image hiện tại **không** có Gurobi, vì license gắn với máy c�
 | CPU time lớn hơn `TIME_LIMIT` | HiGHS không kiểm tra giới hạn khi đang presolve hoặc giải LP gốc của mô hình lớn | Bình thường với mô hình lớn. `HARD_LIMIT` sẽ chặn. Ghi chú trong báo cáo (bảng có dấu `*`) |
 | Docker: `permission denied` khi ghi `results/` | Thư mục thuộc root, hoặc user không khớp | Thêm `--user "$(id -u):$(id -g)"`; hoặc `sudo chown -R $USER results` |
 | Docker build dừng ở bước `Pkg.precompile()` với `Killed` hoặc `returned a non-zero code: 137` | Hết RAM khi biên dịch thư viện | Build với ít luồng hơn: `docker build --build-arg PRECOMPILE_TASKS=1 -t orange-tasr .`; với Docker Desktop thì tăng Memory (mục 3.1) |
-| `permission denied while trying to connect to the docker API at unix:///var/run/docker.sock` | User chưa thuộc nhóm `docker` | `sudo usermod -aG docker $USER && newgrp docker`; hoặc `DOCKER="sudo docker" scripts/run_server.sh`; không có sudo thì nhờ quản trị server, hoặc chạy không Docker (`USE_DOCKER=0`, mục 4) |
 | Docker: `Cannot connect to the Docker daemon` | Docker chưa chạy | Mở Docker Desktop, hoặc `sudo systemctl start docker` |
 | Thí nghiệm dừng giữa chừng khi đóng VS Code hoặc terminal | Tiến trình con bị tắt theo terminal | Dùng `nohup … &` (mục 6.3) hoặc `docker run -d` (mục 3.4). Chạy lại lệnh cũ để làm tiếp phần còn thiếu |
 | Pluto không mở được trong Docker | Thiếu `-p 1234:1234` | `docker run --rm -p 1234:1234 orange-tasr pluto` |
@@ -373,4 +397,4 @@ Giá trị tham chiếu (máy gốc, HiGHS 1.15.1):
 | setA-01 | 0.929384 | 0.929384 |
 | setA-02 | 0.548578 | 0.903075 |
 | setA-03 | 0.943543 | 0.943543 |
-| setA-05 | 0.115524 | không có (bị dừng sau 10800 s) |
+| setA-05 | 0.115524 | (không có: lượt chạy bị chốt chặn dừng ở 4500 s, không có cận) |

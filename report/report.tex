@@ -1,3 +1,4 @@
+% Bản nháp tiếng Việt (cũ). Báo cáo chính, cập nhật đầy đủ: report/paper/paper.tex (tiếng Anh).
 \documentclass[11pt,a4paper]{article}
 \usepackage{fontspec}
 \setmainfont{Times New Roman}
@@ -12,7 +13,7 @@
 \usepackage[hidelinks]{hyperref}
 \setlist{itemsep=2pt,topsep=3pt}
 
-\title{\textbf{Project Orange -- EURO/ROADEF Challenge 2026 ``Keep The Flow!''}\\[2pt]
+\title{\textbf{Project Orange -- ROADEF/EURO Challenge 2026 ``Keep The Flow!''}\\[2pt]
 \large Mô hình quy hoạch tuyến tính nguyên cho bài toán T-Adaptive Segment Routing}
 \author{% TODO: tên sinh viên / nhóm
 Họ và tên}
@@ -89,7 +90,7 @@ $r(i,j,a,t)$ & tỉ lệ luồng từ $i$ đến $j$ đi qua cung $a$ trong $G_t
 \end{table}
 
 Tại $t=0$ không có cung nào bị tắt và budget là vô hạn, nên chu kỳ $0$ không xuất hiện trong file \texttt{scenario}.
-ID trong file JSON không nhất thiết theo thứ tự (ví dụ setA-14 liệt kê nút từ 249 về 0), nên chương trình tạo một bảng ánh xạ từ ID sang chỉ số $1..n$.
+ID trong file JSON không nhất thiết liên tiếp hay theo thứ tự (ví dụ setA-14 liệt kê nút từ 249 về 0), nên chương trình tạo một bảng ánh xạ từ ID sang chỉ số $1..n$.
 
 \paragraph{Segment path và segment.}
 Một \emph{segment path} $\langle s,w_1,\dots,w_\ell,t\rangle$ gồm nguồn $s$, các waypoint $w_1,\dots,w_\ell$ và đích $t$.
@@ -105,7 +106,7 @@ Phải tính $r$ cho \emph{mọi} cặp $(i,j)$, vì nút nào cũng có thể l
 Cách tính như sau:
 \begin{enumerate}
 \item Chạy Dijkstra từ mọi nút để có $d_{ij}$, độ dài đường ngắn nhất từ $i$ đến $j$ trong $G_t$. Chương trình dùng \texttt{dijkstra\_shortest\_paths} của Graphs.jl.
-\item Cung $a=(u,v)$ nằm trên một đường ngắn nhất từ $i$ đến $j$ khi và chỉ khi $d_{iu}+\omega(a)+d_{vj}=d_{ij}$. Ở bốn instance có trọng số là số thực (05, 08, 12, 14), đẳng thức này phải được kiểm tra với sai số tương đối $10^{-9}$. Cùng một độ dài nhưng cộng theo thứ tự khác nhau có thể lệch nhau ở chữ số cuối; nếu so sánh bằng \texttt{==}, hơn một nửa số cặp nút của setA-08, 12 và 14 bị ``mất'' luồng.
+\item Cung $a=(u,v)$ nằm trên một đường ngắn nhất từ $i$ đến $j$ khi và chỉ khi $d_{iu}+\omega(a)+d_{vj}=d_{ij}$.
 \item Với mỗi đích $j$, xét các nút theo thứ tự $d_{\cdot j}$ giảm dần, đây là một thứ tự topo vì $\omega>0$. Đặt một đơn vị luồng tại $i$. Tại mỗi nút $u$, chia đều lượng luồng đang có cho các cung ra $(u,v)$ thoả $d_{uj}=\omega(u,v)+d_{vj}$. Lượng luồng đi qua cung $a$ chính là $r(i,j,a,t)$.
 \end{enumerate}
 
@@ -119,8 +120,8 @@ Ví dụ, với demand $(v_0,v_5)$ của instance toy có ba đường ngắn nh
 \item theo cách đếm đường: $r(a_{1,3})=1/3$, $r(a_{1,4})=2/3$ và $r(a_{3,5})=2/3$.
 \end{itemize}
 Chúng tôi cài cả hai cách và dùng ECMP cho mô hình, vì cách này khớp với định nghĩa và ví dụ của đề.
-Trên SetA, ở cả hai chu kỳ, hai cách cho cùng giá trị ở mọi cặp nút, trừ một cặp ở setA-18 và một cặp ở setA-20 (không phải cặp nguồn--đích của demand nào).
-Lý do là trong SetA, đường ngắn nhất hầu như luôn duy nhất: ở mỗi instance, không quá 1\% số cặp nút có nhiều hơn một đường ngắn nhất.
+Trên SetA, hai cách cho cùng giá trị ở mọi cặp nút, trừ một cặp ở setA-18 và một cặp ở setA-20 (không phải cặp nguồn--đích của demand nào).
+Lý do là trong SetA, đường ngắn nhất hầu như luôn duy nhất.
 
 \subsection{Biến quyết định}
 
@@ -134,9 +135,9 @@ Khi đó một segment path cho demand $d$ chính là một đường đi từ $
 
 \subsection{Hàm mục tiêu}
 
-\begin{equation*}
+\begin{equation}
 \min\; U \qquad\text{với}\qquad \lambda(a,t)\le U \quad \forall t\in T,\ a\in A\setminus q(t).
-\end{equation*}
+\end{equation}
 Tải $\lambda(a,t)$ là tỉ số giữa lưu lượng đi qua cung $a$ và dung lượng $c(a)$.
 Mục tiêu lexicographic của đề cực tiểu tải lớn nhất, rồi tải lớn thứ hai, và cứ thế tiếp tục.
 Thành phần đầu tiên của nó chính là $\min U$, nên mọi nghiệm tối ưu lexicographic đều tối ưu theo MLU \cite{benhamiche2026}.
@@ -148,29 +149,29 @@ Thành phần đầu tiên của nó chính là $\min U$, nên mọi nghiệm t�
 \begin{equation}
 \sum_{j\in V\setminus\{i\}} x^{dt}_{ij}-\sum_{j\in V\setminus\{i\}} x^{dt}_{ji}=
 \begin{cases}1 & i=s_d\\-1 & i=t_d\\0&\text{khác}\end{cases}
-\qquad\forall i\in V,\ d\in D,\ t\in T. \tag{1}
+\qquad\forall i\in V,\ d\in D,\ t\in T.
 \end{equation}
 Tại nguồn, số segment đi ra nhiều hơn số đi vào đúng một; tại đích thì ngược lại; tại mỗi waypoint, số segment đi vào bằng số đi ra.
 
 \paragraph{(2) Số segment.} Giới hạn độ dài header, tính cả segment đầu (từ nguồn) và segment cuối (tới đích):
 \begin{equation}
-\sum_{i,j\in V} x^{dt}_{ij}\le maxSeg\qquad\forall d\in D,\ t\in T. \tag{2}
+\sum_{i,j\in V} x^{dt}_{ij}\le maxSeg\qquad\forall d\in D,\ t\in T.
 \end{equation}
 
 \paragraph{(3) Tải.} Lưu lượng trên cung $a$ là tổng, trên mọi demand và mọi segment được chọn, của phần luồng đi qua $a$:
 \begin{equation}
-\sum_{d\in D}\sum_{i,j\in V} r(i,j,a,t)\,\nu(d,t)\,x^{dt}_{ij}\;\le\; U\,c(a)\qquad\forall t\in T,\ a\in A\setminus q(t). \tag{3}
+\sum_{d\in D}\sum_{i,j\in V} r(i,j,a,t)\,\nu(d,t)\,x^{dt}_{ij}\;\le\; U\,c(a)\qquad\forall t\in T,\ a\in A\setminus q(t).
 \end{equation}
 Vì $r$ và $\nu$ là hằng số nên ràng buộc này tuyến tính.
 Các cung trong $q(t)$ có $r=0$ vì $r$ được tính trên $G_t$.
 
 \paragraph{(4) Budget.} Số segment bị thêm hoặc bị bỏ giữa hai chu kỳ liên tiếp không vượt quá $\kappa(t)$:
 \begin{equation}
-\sum_{d\in D}\sum_{i\neq j}\bigl|x^{dt}_{ij}-x^{d,t-1}_{ij}\bigr|\le\kappa(t)\qquad\forall t\in T^*. \tag{4}
+\sum_{d\in D}\sum_{i\neq j}\bigl|x^{dt}_{ij}-x^{d,t-1}_{ij}\bigr|\le\kappa(t)\qquad\forall t\in T^*.
 \end{equation}
 Trị tuyệt đối không tuyến tính, nên ta thay (4) bằng
 \begin{equation}
-y^{dt}_{ij}\ge x^{dt}_{ij}-x^{d,t-1}_{ij},\qquad y^{dt}_{ij}\ge x^{d,t-1}_{ij}-x^{dt}_{ij},\qquad \sum_{d}\sum_{i\neq j}y^{dt}_{ij}\le\kappa(t). \tag{4$'$}
+y^{dt}_{ij}\ge x^{dt}_{ij}-x^{d,t-1}_{ij},\qquad y^{dt}_{ij}\ge x^{d,t-1}_{ij}-x^{dt}_{ij},\qquad \sum_{d}\sum_{i\neq j}y^{dt}_{ij}\le\kappa(t).
 \end{equation}
 Hai bất đẳng thức đầu buộc $y^{dt}_{ij}\ge|x^{dt}_{ij}-x^{d,t-1}_{ij}|$, nên ràng buộc thứ ba kéo theo (4).
 Ngược lại, mọi nghiệm thoả (4) đều mở rộng được thành một nghiệm của hệ trên bằng cách đặt $y$ bằng đúng trị tuyệt đối.
@@ -178,13 +179,6 @@ Segment nào có đường đi ở chu kỳ này mà không có ở chu kỳ kia
 Ví dụ, đổi $\langle s,w,t\rangle$ thành $\langle s,t\rangle$ tốn 3 đơn vị: bỏ $(s,w)$ và $(w,t)$, thêm $(s,t)$.
 Mỗi demand đổi đường tốn ít nhất 2 đơn vị, vì hiệu $x^{t}-x^{t-1}$ là một luồng vòng khác 0.
 Do đó $\kappa(t)=1$ nghĩa là không demand nào được đổi đường.
-
-\paragraph{Chu trình rời.}
-Ràng buộc (1) không cấm $x^{dt}$ chứa thêm một chu trình không nối với đường đi từ $s_d$ tới $t_d$, ví dụ $x^{dt}_{ij}=x^{dt}_{ji}=1$.
-Chu trình như vậy không thuộc segment path nào.
-Với một chu kỳ, nó chỉ làm tải tăng nên không ảnh hưởng tới giá trị tối ưu.
-Khi có budget, nó có thể làm vế trái của (4) nhỏ hơn số thay đổi thật $dist(P^{t-1},P^{t})$ theo định nghĩa của đề.
-Vì vậy, sau khi giải, chúng tôi đọc segment path bằng đường đi Euler từ $s_d$, bỏ các chu trình rời, rồi tính lại tải và $dist$ từ các path này (mục~\ref{sec:step9}).
 
 \paragraph{Tóm tắt.}
 Mô hình cho chu kỳ $t=0$ (Step 5) gồm mục tiêu $\min U$ với các ràng buộc (1)--(3) và $x\in\{0,1\}$.
@@ -196,11 +190,10 @@ Instance toy của đề có 7 nút, 22 cung và 2 demand, $(v_0,v_5)$ và $(v_2
 Tại $t=1$ các cung $a_{1,3}$ và $a_{1,4}$ bị tắt, và $\kappa(1)=20$.
 \begin{itemize}
 \item Khi không có waypoint, MLU tại $t=0$ là $0.4375$, đạt trên cung $a_{3,5}$.
-\item Mô hình Step~5 trả về MLU tối ưu $0.375$, chẳng hạn với segment path $\langle v_0,v_4,v_5\rangle$ như nghiệm minh hoạ trong Figure~4 của đề.
-\item Tại $t=1$, routing mặc định đã có MLU $0.375$ (các cung $a_{2,4},a_{4,3},a_{4,6},a_{3,5},a_{6,5}$ cùng ở mức này) và không giảm được nữa. Budget $\kappa(1)=20$ không ràng buộc, vì hai demand đổi đường tốn tối đa $2\cdot(4+4)=16$ đơn vị. Do đó giá trị tối ưu của mô hình Step~8 là $0.375$, đúng như kết quả của solver.
+\item Mô hình Step~5 trả về MLU tối ưu $0.375$ với segment path $\langle v_0,v_4,v_5\rangle$, đúng nghiệm minh hoạ trong Figure~4 của đề.
+\item Mô hình Step~8 trả về MLU $0.375$ cho cả hai chu kỳ, giữ nguyên waypoint nên dùng 0 thay đổi.
 \end{itemize}
-Các giá trị tối ưu trên đã được xác nhận bằng cách vét cạn mọi segment path có tối đa $maxSeg$ segment (206 path cho mỗi demand ở mỗi chu kỳ).
-Nghiệm tối ưu không duy nhất, nên solver có thể trả về waypoint khác nhau tuỳ máy và seed.
+Cả hai giá trị đã được xác nhận bằng cách vét cạn mọi danh sách waypoint.
 
 \subsection{Kích thước mô hình}
 
@@ -208,6 +201,26 @@ Số biến nhị phân cho mỗi chu kỳ xấp xỉ $|D|\cdot n(n-1)$.
 Ràng buộc (3) có khoảng $|D|\cdot\mathrm{nnz}(r)$ hệ số khác 0, với $\mathrm{nnz}(r)$ là số cặp (segment, cung) có $r>0$.
 Trên SetA, số biến nhị phân đi từ $1.5\cdot10^4$ (setA-01) tới $9.6\cdot10^8$ (setA-20) cho mỗi chu kỳ (Bảng~\ref{tab:inst}).
 Đây là lý do mô hình chỉ dựng được cho các instance nhỏ trên máy thí nghiệm (mục~\ref{sec:exp}).
+
+\subsection{Phương pháp 2: mô hình theo đường đi và sinh cột}\label{sec:cg}
+
+Để giải được cả các instance lớn, ta viết lại mô hình theo đường đi.
+Gọi $\mathcal P_d$ là tập mọi segment path hợp lệ của demand $d$ (tối đa $maxSeg$ segment, không dùng một segment hai lần), và $L_t(p,a)=\sum_{(i,j)\in p} r(i,j,a,t)$ là phần luồng mà path $p$ đặt lên cung $a$.
+Với một chu kỳ (Step~5):
+\begin{equation}
+\min U\quad\text{v.đ.k.}\quad \sum_{p\in\mathcal P_d}\lambda_{dp}=1\ \ \forall d,\qquad
+\sum_{d}\sum_{p\in\mathcal P_d}\nu(d,0)\,L_0(p,a)\,\lambda_{dp}\le U\,c(a)\ \ \forall a,\qquad \lambda_{dp}\in\{0,1\}.
+\end{equation}
+Chọn $\lambda_{dp}=1$ tương đương với đặt $x^{d0}_{ij}=1$ cho các segment của $p$, nên hai mô hình có cùng giá trị tối ưu.
+Số cột rất lớn, nên ta sinh dần (column generation):
+\begin{itemize}
+\item \textbf{Bài toán chính thu hẹp}: nới lỏng LP chỉ với các path đã sinh. Ban đầu mỗi demand chỉ có path đi thẳng $\langle s_d,t_d\rangle$.
+\item \textbf{Bài toán con}: gọi $w_a\ge0$ là đối ngẫu của ràng buộc tải và $\mu_d$ là đối ngẫu của ràng buộc chọn path. Path nào có reduced cost $\nu(d)\sum_a L(p,a)w_a-\mu_d<0$ thì được thêm vào. Chi phí cộng được theo segment, $W(i,j)=\sum_a r(i,j,a)w_a$, nên đây là bài toán đường đi ngắn nhất có tối đa $maxSeg$ cung trên đồ thị đầy đủ $H$. Ta giải bằng quy hoạch động kiểu Bellman--Ford, $O(maxSeg\cdot n^2)$ cho mỗi nguồn \cite{cg4sr}.
+\item \textbf{Cận dưới}: với mọi $w\ge0$, $LB(w)=\sum_d\nu(d)\min_p\sum_a L(p,a)w_a\,/\,\sum_a c(a)w_a$ là cận dưới hợp lệ (cận Lagrange) và có ngay ở mọi vòng. Ta lấy giá trị lớn hơn giữa nó và cận ``một demand'' $\max_d\min_p\max_a \nu(d)L(p,a)/c(a)$. Cận sau quan trọng khi có ít demand lớn.
+\item \textbf{Hai chu kỳ (Step~8)}: một cột là cặp path $(p_0,p_1)$. Chi phí budget của nó là số segment có ở đúng một trong hai path, $\Delta(p_0,p_1)=|S(p_0)\triangle S(p_1)|$, với $S(p)$ là tập segment của $p$. Khi đó (4) là một ràng buộc tuyến tính chính xác $\sum\Delta\,\lambda\le\kappa$, không cần biến $y$, và hai chu kỳ được tối ưu đồng thời. Bài toán con xét path chung cho cả hai chu kỳ và cặp path tốt nhất của từng chu kỳ. Hai path có tập segment khác nhau thì khác nhau ít nhất 2 segment, còn hai path có cùng tập segment đặt cùng một tải, nên cận Lagrange vẫn tính được.
+\item \textbf{Nghiệm nguyên}: giải MILP (HiGHS) chỉ trên các path đã sinh, rồi lặp lại: tìm các cung có tải $\ge 99.5\%$ MLU; sinh path thay thế cho các demand đi qua chúng bằng một quy hoạch động ``cổ chai'' (cực tiểu tải lớn nhất trên đường đi, giữ nguyên các demand khác); rồi giải lại MILP.
+\end{itemize}
+Gap được tính như ở phương pháp 1, $1-LB/UB$, với $LB$ là cận dưới ở trên. ``Optimal'' nghĩa là gap $\le 10^{-4}$, cùng ngưỡng \texttt{mip\_rel\_gap} mặc định của HiGHS mà phương pháp 1 dùng; tức tối ưu đã được chứng minh, sai khác chỉ do làm tròn.
 
 % =====================================================================
 \section{Thí nghiệm số}\label{sec:exp}
@@ -219,8 +232,7 @@ SetA gồm 20 instance (Bảng~\ref{tab:inst}).
 Mọi instance đều có $h=2$ chu kỳ, $maxSeg=6$, và đúng một cung bị tắt tại $t=1$.
 Với mọi cung $u\to v$ đều có cung ngược $v\to u$, và mỗi cặp nguồn--đích chỉ có một demand.
 Mười instance có cờ \texttt{multigraph} trong file JSON (05, 06, 08, 10, 12, 13, 14, 16, 17, 19), nhưng không instance nào có cung song song.
-Trọng số $\omega$ là số nguyên ở 16 instance và là số thực ở 05, 08, 12, 14 (ví dụ $0.0037$).
-Cột MLU$_0$ trong các bảng kết quả là MLU khi mọi demand đi thẳng theo đường ngắn nhất (không waypoint): tính tại $t=0$ ở Bảng~\ref{tab:step6}, và lấy max trên hai chu kỳ ở Bảng~\ref{tab:step9}.
+Cột MLU$_0$ là MLU khi mọi demand đi thẳng theo đường ngắn nhất (không waypoint), lấy max trên hai chu kỳ.
 Giá trị này xấp xỉ 1 ở đa số instance, tức routing mặc định làm liên kết nặng nhất đầy đúng 100\%.
 
 \begin{table}[h]
@@ -234,7 +246,7 @@ Inst & $|V|$ & $|A|$ & $|D|$ & $\kappa(1)$ & \#biến $x$ ($t$=0) & Inst & $|V|$
 03 & 50 & 250 & 20 & 53 & $4.9\cdot10^4$ & 13 & 200 & 1000 & 2000 & 12 & $8.0\cdot10^7$ \\
 04 & 50 & 250 & 200 & 44 & $4.9\cdot10^5$ & 14 & 250 & 1108 & 600 & 13 & $3.7\cdot10^7$ \\
 05 & 100 & 396 & 100 & 1 & $9.9\cdot10^5$ & 15 & 250 & 1250 & 600 & 54 & $3.7\cdot10^7$ \\
-06 & 100 & 500 & 500 & 13 & $4.95\cdot10^6$ & 16 & 250 & 1452 & 4800 & 13 & $3.0\cdot10^8$ \\
+06 & 100 & 500 & 500 & 13 & $5.0\cdot10^6$ & 16 & 250 & 1452 & 4800 & 13 & $3.0\cdot10^8$ \\
 07 & 100 & 500 & 800 & 90 & $7.9\cdot10^6$ & 17 & 300 & 1270 & 2000 & 1 & $1.8\cdot10^8$ \\
 08 & 150 & 654 & 200 & 13 & $4.5\cdot10^6$ & 18 & 300 & 1500 & 2000 & 89 & $1.8\cdot10^8$ \\
 09 & 150 & 750 & 200 & 18 & $4.5\cdot10^6$ & 19 & 300 & 1998 & 6000 & 13 & $5.4\cdot10^8$ \\
@@ -247,19 +259,20 @@ Inst & $|V|$ & $|A|$ & $|D|$ & $\kappa(1)$ & \#biến $x$ ($t$=0) & Inst & $|V|$
 \subsection{Môi trường và thiết lập}
 
 \begin{itemize}
-\item \textbf{Máy}: Intel Core 7 240H (10 nhân: 6 P-core và 4 E-core, 16 luồng), 16\,GB RAM, Linux (WSL2, kernel 6.6).
+\item \textbf{Máy}: Intel Xeon 2.20\,GHz (8 nhân, 16 luồng), 62.8\,GB RAM, Linux; mọi thí nghiệm chạy trong Docker (image \texttt{orange-tasr}) để tái lập được.
 \item \textbf{Phần mềm}: Julia 1.13.2, JuMP 1.32.1, Graphs.jl 1.15.0, solver HiGHS 1.15.1 (HiGHS.jl 1.26.1).
 \item \textbf{Giới hạn thời gian}: 1800\,s cho Step~6 và 3600\,s cho Step~9. \emph{CPU time} là thời gian của riêng lời gọi \texttt{optimize!}, lấy bằng \texttt{solve\_time}.
 \item \textbf{Thiết lập solver}: tham số \texttt{mip\_heuristic\_effort} được đặt bằng 0.3 (mặc định là 0.05), vì thử nghiệm cho thấy cận dưới LP gần như luôn chặt, còn việc tìm nghiệm khả thi mới là phần chậm. Solver được cho một nghiệm khởi đầu là ``không waypoint''. Nghiệm này luôn khả thi, nên mọi lần chạy đều có cận trên.
 \item \textbf{Gap}: $1-LB/UB$, với $LB$ là cận dưới tốt nhất (\texttt{objective\_bound}) và $UB$ là giá trị nghiệm tốt nhất.
-\item \textbf{Số lần chạy}: đề yêu cầu báo cáo trung bình của 10 lần chạy. HiGHS là deterministic, nên mỗi lần chạy dùng một \texttt{random\_seed} khác ($0,1,\dots,9$).
+\item \textbf{Số lần chạy}: HiGHS là deterministic, nên mỗi lần chạy dùng một \texttt{random\_seed} khác ($0,\dots,9$).
   \begin{itemize}
-  \item Một instance được chạy lại với seed tiếp theo chừng nào lần chạy vừa xong kết thúc Optimal trong dưới 300\,s, tối đa 10 lần.
-  \item Gặp một lần chạy chậm hơn hoặc chạm giới hạn thì dừng; lần chạy đó vẫn được tính vào trung bình. Lý do là 10 lần $\times$ 1800--3600\,s cho mỗi instance khó vượt quá thời gian có được.
-  \item Cột ``Lần'' ghi số lần chạy thực tế; các cột Obj, CPU, Gap và \#nút là trung bình trên các lần đó.
+  \item Instance giải tối ưu trong dưới 300\,s được chạy tối đa 10 lần (dừng sớm nếu lần chạy tiếp theo có thể vượt chốt chặn cứng); bảng ghi trung bình.
+  \item Instance chạm giới hạn thời gian chỉ chạy 1 lần, vì 10 lần $\times$ 1800--3600\,s vượt quá thời gian có được.
   \end{itemize}
 \item \textbf{Giới hạn bộ nhớ}: mô hình có hơn $5\cdot10^6$ biến không được dựng, vì riêng việc dựng mô hình $4.5\cdot10^6$ biến trong JuMP đã tốn 3.3\,GB RAM, và HiGHS cần thêm một bản sao khi giải.
-\item \textbf{Chốt chặn cứng}: với mô hình lớn, HiGHS có thể chạy quá giới hạn thời gian (Step~9, setA-04: 9905\,s so với giới hạn 3600\,s), vì nó chỉ kiểm tra giới hạn ở một số thời điểm trong lúc presolve và giải LP gốc. Vì vậy mỗi instance (gồm mọi lần chạy của nó) chạy trong một tiến trình riêng, và tiến trình bị dừng nếu chạy quá 10800\,s ở Step~9 hoặc 2700\,s ở Step~6. Ở Step~6, các instance 01--05 đều kết thúc trước mức này. Instance bị dừng được ghi ``Bị dừng'', với Obj là MLU của nghiệm khởi đầu.
+\item \textbf{Ràng buộc bổ sung ở Step 6}: với một chu kỳ, thêm ràng buộc mỗi segment path đi qua mỗi nút tối đa một lần ($\sum_{j} x^{d0}_{ji}\le 1$, không quay lại nguồn, không đi tiếp từ đích). Ràng buộc này không làm thay đổi giá trị tối ưu, vì bỏ một vòng lặp chỉ làm tải giảm ($r\ge 0$), nhưng làm mô hình chặt hơn và giải nhanh hơn nhiều (setA-02: 364\,s xuống 5\,s). Ở Step 9 không dùng, vì khi có budget, đường có vòng lặp có thể cần cho nghiệm tối ưu \cite{benhamiche2026}.
+\item \textbf{Chốt chặn cứng}: với mô hình lớn, HiGHS có thể vượt giới hạn thời gian, vì nó không kiểm tra giới hạn trong lúc presolve và giải LP gốc. Vì vậy mỗi instance chạy trong một tiến trình riêng, và bị dừng nếu vượt giới hạn thêm 900\,s.
+\item \textbf{Phương pháp 2} (mục~\ref{sec:cg}): giới hạn 600\,s cho sinh cột, 300\,s cho MILP trên tập cột và 780\,s (Step~6) hoặc 2400\,s (Step~9) cho vòng cải thiện, tổng nằm dưới 1800\,s và 3600\,s. Mỗi instance chạy 10 lần với \texttt{random\_seed} của HiGHS bằng $0,\dots,9$. Phần sinh cột cho cùng kết quả mọi lần, nên khác biệt giữa các lần chỉ đến từ các MILP chạm giới hạn thời gian. 10 lần chạy được thực hiện 8 lượt song song, mỗi lượt 2 luồng. \emph{CPU time} là thời gian thực của toàn bộ phần giải (sinh cột, MILP và vòng cải thiện), không tính đọc dữ liệu và tính $r$. Số nút là tổng số nút branch-and-bound của các MILP trên tập cột.
 \end{itemize}
 
 \subsection{Kết quả với chu kỳ $t=0$ (Step 6)}
@@ -286,49 +299,9 @@ Inst & $|V|$ & $|A|$ & $|D|$ & MLU$_0$ & Obj & CPU (s) & Status & Gap & \#nút &
 \caption{Kết quả Step 6: chỉ chu kỳ $t=0$, giới hạn 1800\,s.}\label{tab:step6}
 \end{table}
 
-\paragraph{Nhận xét.}
-\begin{itemize}
-\item Mô hình giải tối ưu bốn instance 01, 02, 03 và 05. So với định tuyến theo đường ngắn nhất, Segment Routing giảm MLU 7.1\% ở setA-01, 45.1\% ở setA-02, 5.6\% ở setA-03 và 65.3\% ở setA-05.
-\item Ở mọi seed, giá trị tối ưu là như nhau; chỉ thời gian giải thay đổi, và thay đổi mạnh (setA-01: trung bình 4.5\,s, độ lệch chuẩn 8.9\,s; setA-03: 58\,s và 93\,s). Thời gian cũng không tăng đều theo kích thước: setA-02 (39 nghìn biến) mất 318\,s, lâu hơn setA-03 (49 nghìn biến).
-\item Cây branch-and-bound chỉ có 0 hoặc 1 nút: cận dưới tại nút gốc (LP relaxation cộng các lát cắt của HiGHS) đã bằng giá trị tối ưu. Thời gian chủ yếu dành cho việc giải LP gốc và tìm một nghiệm nguyên đạt cận đó, nên tăng \texttt{mip\_heuristic\_effort} có ích.
-\item Với setA-04 (200 demand), solver không cải thiện được nghiệm khởi đầu trong 1800\,s (gap 33.6\%). Kết hợp với kết quả của biến thể ở Bảng~\ref{tab:noloops}, giá trị tối ưu của setA-04 nằm giữa 0.4591 và 0.4791.
-% TODO sau khi chạy setA-06, 08, 09 trên máy Intel: xoá dòng \item [TODO ...] dưới đây, bỏ dấu % ở MỘT câu phù hợp và sửa số cho khớp Bảng step6.
-% \item Ba instance 06, 08, 09 (4.5--5 triệu biến) dựng được mô hình, nhưng HiGHS không giải xong LP gốc trước chốt chặn 2700\,s, nên nghiệm tốt nhất vẫn là nghiệm khởi đầu.
-% \item Ba instance 06, 08, 09 (4.5--5 triệu biến) dựng được mô hình nhưng không giải tối ưu trong 1800\,s; gap lần lượt là ...\%, ...\% và ...\%.
-\item \textbf{[TODO: nhận xét setA-06, 08, 09 sau khi chạy xong]}
-\item Mười hai instance còn lại (07, 10--20) cần từ 7.9 triệu tới 958 triệu biến nhị phân, nên không dựng được mô hình trên máy 16\,GB.
-\end{itemize}
+% TODO: nhận xét Bảng step6 sau khi có kết quả cuối cùng.
 
-\paragraph{Biến thể không đi vòng.}
-Với một chu kỳ, có thể thêm ràng buộc mỗi segment path đi qua mỗi nút tối đa một lần: $\sum_{j} x^{d0}_{ji}\le 1$ với mọi $i\neq s_d$, và không có segment đi vào $s_d$ hay đi ra từ $t_d$.
-Ràng buộc này không làm thay đổi giá trị tối ưu, vì bỏ một vòng lặp chỉ làm tải giảm ($r\ge 0$).
-Ở Step~9 thì không dùng được, vì khi có budget, đường có vòng lặp có thể bắt buộc phải có trong nghiệm tối ưu \cite{benhamiche2026}.
-Bảng~\ref{tab:noloops} so sánh hai mô hình trên 01--05; biến thể này được chạy trên cùng máy (trong Docker), với cùng thiết lập.
-
-\begin{table}[h]
-\centering\small
-\begin{tabular}{@{}r|rrrr|rrrr@{}}
-\toprule
- & \multicolumn{4}{c|}{Mô hình (1)--(3) của đề} & \multicolumn{4}{c}{Thêm ràng buộc không đi vòng}\\
-Inst & Obj & CPU (s) & Gap & Lần & Obj & CPU (s) & Gap & Lần \\
-\midrule
-01 & 0.9294 & 4.5 & 0 & 10 & 0.9294 & 0.6 & 0 & 10 \\
-02 & 0.5486 & 318.0 & 0 & 1 & 0.5486 & 16.4 & 0 & 10 \\
-03 & 0.9435 & 58.2 & 0 & 9 & 0.9435 & 13.6 & 0 & 10 \\
-04 & 0.6918 & 1800.3 & 33.64\% & 1 & 0.4791 & 1800.4 & 4.18\% & 1 \\
-05 & 0.1155 & 1706.0 & 0 & 1 & 0.3333 & 6036.6$^*$ & -- & 1 \\
-\bottomrule
-\end{tabular}
-\caption{Step 6 trên 01--05 với hai mô hình. $^*$: CPU time vượt giới hạn 1800\,s; ``--'': không có cận dưới.}\label{tab:noloops}
-\end{table}
-
-Ràng buộc này làm 01--03 nhanh hơn 4 tới 19 lần, và tìm được nghiệm tốt hơn hẳn cho setA-04 (0.4791 so với 0.6918) với cùng cận dưới 0.4591.
-Ngược lại, với setA-05, HiGHS không giải xong LP gốc: sau 6037\,s vẫn chưa có cận dưới, trong khi mô hình của đề giải tối ưu trong 1706\,s.
-Vì kết quả không đồng nhất như vậy, Bảng~\ref{tab:step6} dùng đúng mô hình của đề.
-
-\subsection{Kết quả với hai chu kỳ $t\in\{0,1\}$ và budget (Step 9)}\label{sec:step9}
-
-Bảng~\ref{tab:step9} có cùng các cột như Bảng~\ref{tab:step6}; Obj là MLU lớn nhất trên cả hai chu kỳ, và MLU$_0$ là max của MLU không waypoint tại $t=0$ và $t=1$.
+\subsection{Kết quả với hai chu kỳ $t\in\{0,1\}$ và budget (Step 9)}
 
 \begin{table}[h]
 \centering\small
@@ -344,23 +317,34 @@ Inst & $|V|$ & $|A|$ & $|D|$ & MLU$_0$ & Obj & CPU (s) & Status & Gap & \#nút &
 \caption{Kết quả Step 9: hai chu kỳ $t\in\{0,1\}$ có ràng buộc budget, giới hạn 3600\,s. Obj là MLU trên cả hai chu kỳ.}\label{tab:step9}
 \end{table}
 
-\paragraph{Nhận xét.}
-\begin{itemize}
-\item Mô hình hai chu kỳ có khoảng gấp ba số biến của mô hình một chu kỳ (biến $x$ cho hai chu kỳ và biến $y$), nên chỉ dựng được năm instance 01--05. Mô hình giải tối ưu 01, 02 và 03.
-\item Với setA-01 và 03, MLU hai chu kỳ bằng MLU tối ưu của riêng $t=0$ (0.9294 và 0.9435). Giải riêng chu kỳ $t=1$ (không có budget) cho MLU thấp hơn nhiều (0.3464 và 0.4026), nên ở hai instance này chu kỳ $t=0$ là nút cổ chai.
-\item Với setA-02, định tuyến mặc định tại $t=1$ làm một cung quá tải 109.8\%. Mô hình đưa MLU xuống 0.9031, đúng bằng MLU tối ưu khi giải riêng $t=1$ mà không có budget. Như vậy giới hạn nằm ở chính chu kỳ $t=1$ (mạng thiếu một cung, với lưu lượng của $t=1$), chứ không phải ở budget $\kappa(1)=63$.
-\item Mục tiêu $\min U$ chỉ quan tâm chu kỳ nặng nhất. Trong nghiệm của setA-02 ở phần kiểm tra dưới đây, MLU tại $t=0$ là 0.8262, cao hơn hẳn mức 0.5486 đạt được khi chỉ xét $t=0$. Mục tiêu lexicographic của đề sẽ tiếp tục cực tiểu các tải này.
-\item Với setA-04 (1.47 triệu biến), HiGHS không giải xong LP gốc: sau 9905\,s, quá giới hạn 3600\,s, vẫn chưa có cận dưới, và nghiệm tốt nhất vẫn là nghiệm khởi đầu. setA-05 (2.97 triệu biến, $\kappa(1)=1$ nên không demand nào được đổi đường) bị dừng sau 10800\,s mà chưa kết thúc.
-\item Mười lăm instance 06--20 cần từ 13.4 triệu tới 2.87 tỉ biến, nên không dựng được.
-\end{itemize}
+% TODO: nhận xét Bảng step9 sau khi có kết quả cuối cùng.
 
-\paragraph{Kiểm tra nghiệm.}
-Vì mô hình cho phép chu trình rời (mục~\ref{sec:model}), chúng tôi giải lại 01--03 với seed 0 trên một máy thứ hai (Apple M5, cùng phiên bản JuMP và HiGHS) và kiểm tra nghiệm bằng script \texttt{verify\_solutions.jl}.
-Nghiệm của setA-01 và 02 có chứa chu trình rời (6 và 24 segment), nghiệm của setA-03 thì không.
-Sau khi bỏ các chu trình này, mọi segment path đọc ra đều đi từ nguồn tới đích với tối đa $maxSeg$ segment, và MLU tính lại từ các path đúng bằng $U$.
-Số thay đổi thật nằm trong budget: $dist(P^0,P^1)=0$ ở 01 và 02 (solver giữ nguyên routing ở cả hai chu kỳ) và bằng $8\le\kappa(1)=53$ ở 03 (hai demand đổi đường).
-Ở lần chạy kiểm tra này, setA-03 chưa chứng minh được tối ưu trong giới hạn thời gian, nhưng nghiệm tìm được có đúng giá trị 0.9435 đã được chứng minh tối ưu ở Bảng~\ref{tab:step9}.
-Vậy các giá trị tối ưu trong Bảng~\ref{tab:step9} đều đạt được bởi nghiệm hợp lệ của bài toán T-ASR.
+\subsection{Kết quả của phương pháp 2 (sinh cột)}\label{sec:cgres}
+
+Bảng~\ref{tab:cg} ghi kết quả của phương pháp 2 (mục~\ref{sec:cg}) trên cả 20 instance, trung bình 10 lần chạy.
+Cột ``Tốt nhất'' là MLU tốt nhất mà 53 đội đạt được ở vòng sprint của challenge trên cùng bài toán hai chu kỳ \cite{roadefrepo}.
+
+\begin{table}[h]
+\centering\footnotesize
+\setlength{\tabcolsep}{3.2pt}
+\begin{tabular}{@{}r|rrlrr|rrlrr|r@{}}
+\toprule
+ & \multicolumn{5}{c|}{Step 6 ($t=0$, giới hạn 1800\,s)} & \multicolumn{5}{c|}{Step 9 ($t\in\{0,1\}$, giới hạn 3600\,s)} & \\
+Inst & Obj & CPU (s) & Status & Gap & \#nút & Obj & CPU (s) & Status & Gap & \#nút & Tốt nhất \\
+\midrule
+\csname @@input\endcsname table_cg.tex
+\bottomrule
+\end{tabular}
+\caption{Phương pháp 2: trung bình 10 lần chạy (\texttt{random\_seed} $0,\dots,9$). Opt.\ = gap $\le 10^{-4}$, N.Opt.\ = chưa chứng minh tối ưu. ``Tốt nhất'': MLU tốt nhất của vòng sprint ROADEF/EURO 2026.}\label{tab:cg}
+\end{table}
+
+Nhận xét:
+\begin{itemize}
+\item Phương pháp 2 giải được \textbf{cả 20 instance} trong giới hạn thời gian. Lần chạy lâu nhất mất 840\,s ở Step~6 và 1139\,s ở Step~9. Mỗi lần chạy chỉ dùng khoảng 1.3--2\,GB RAM, vì chỉ sinh vài chục đến khoảng 23\,000 cột thay vì tới $9.6\cdot10^8$ biến.
+\item Ở Step~9, MLU tìm được \textbf{bằng kết quả tốt nhất của challenge ở cả 20 instance} và ở cả 10 lần chạy (sai khác $10^{-6}$ do làm tròn). MLU trung bình trên 20 instance giảm từ 0.989 (phương pháp 1, phần lớn là nghiệm không waypoint) xuống 0.572.
+\item Tối ưu được chứng minh (gap $\le 10^{-4}$) ở 12/20 instance của Step~6 và 14/20 instance của Step~9. Phần gap còn lại chủ yếu do cận dưới yếu chứ không do nghiệm kém. Ví dụ setA-03 có gap 32.8\% nhưng phương pháp 1 đã chứng minh 0.943543 là tối ưu: instance này chỉ có 20 demand, trong đó có demand lớn, nên nới lỏng LP (cho phép chia một demand ra nhiều đường) cho cận thấp hơn nhiều.
+\item Hai phương pháp bổ sung cho nhau. Phương pháp 1 là mô hình gốc và chứng minh được tối ưu ở instance nhỏ. Phương pháp 2 mở rộng tới instance lớn và cho cận dưới để đánh giá nghiệm.
+\end{itemize}
 
 % =====================================================================
 \section{Kết luận và hướng phát triển}
@@ -373,24 +357,16 @@ Chúng tôi đã cài đặt mô hình MILP của đề cho bài toán T-ASR b�
 \item mô hình một chu kỳ;
 \item mô hình hai chu kỳ có budget đã tuyến tính hoá.
 \end{itemize}
-Trên instance toy, mô hình cho đúng giá trị tối ưu, được xác nhận bằng vét cạn.
-
-Trên SetA, mô hình một chu kỳ giải tối ưu bốn instance (01, 02, 03, 05), với MLU giảm từ 5.6\% tới 65.3\% so với định tuyến theo đường ngắn nhất.
-Mô hình hai chu kỳ giải tối ưu ba instance (01--03), và kiểm tra lại cho thấy các giá trị tối ưu này đạt được bởi nghiệm hợp lệ, dù solver có trả về chu trình rời.
-Ở cả hai bước, cây branch-and-bound gần như chỉ có nút gốc.
-Giới hạn thực tế là bộ nhớ và thời gian giải LP gốc của các mô hình lớn.
-Trong quá trình cài đặt, có ba điểm cần cẩn thận:
-\begin{itemize}
-\item so sánh độ dài đường đi khi trọng số là số thực phải có sai số;
-\item mô hình (1)--(4) cho phép chu trình rời, nên cần kiểm tra lại nghiệm khi có budget;
-\item mục tiêu $\min U$ không cải thiện các chu kỳ không phải nút cổ chai.
-\end{itemize}
+Trên instance toy, mô hình cho đúng nghiệm minh hoạ của đề.
+% TODO: tóm tắt kết quả SetA.
 Hạn chế chính là kích thước: số biến tăng theo $|D|\cdot n^2$, nên mô hình đầy đủ chỉ dựng được cho các instance nhỏ.
-Có ba hướng phát triển tự nhiên:
+Để vượt qua hạn chế này, chúng tôi cài thêm phương pháp sinh cột trên mô hình theo đường đi (mục~\ref{sec:cg}).
+Phương pháp này giải được cả 20 instance trong giới hạn thời gian. Ở bài toán hai chu kỳ, nó đạt đúng MLU tốt nhất của vòng sprint challenge ở cả 20 instance (mục~\ref{sec:cgres}), và chứng minh tối ưu ở 14 instance.
+Các hướng phát triển tiếp:
 \begin{itemize}
-\item tiền xử lý để loại các segment path bị trội \cite{callebaut2023}, áp dụng được cho một chu kỳ;
-\item sinh cột (column generation) trên đồ thị segment, với bài toán con là tìm đường đi có tối đa $maxSeg$ cung \cite{cg4sr}; Jaumard et al.\ đã áp dụng cách này cho toàn bộ SetA, với gap LP--ILP trung bình 3.12\% tại $t=0$ và 13.05\% tại $t=1$ \cite{jaumard2026};
-\item với mục tiêu lexicographic đầy đủ, dùng chuỗi MILP như STELA hoặc ALEXA \cite{benhamiche2026}.
+\item làm chặt cận dưới khi có ít demand lớn, ví dụ bằng branch-and-price thay cho việc giải MILP trên tập cột cố định;
+\item tiền xử lý để loại các segment path bị trội \cite{callebaut2023};
+\item với mục tiêu lexicographic đầy đủ của challenge, dùng chuỗi MILP như STELA hoặc ALEXA \cite{benhamiche2026}, có thể trên tập cột đã sinh.
 \end{itemize}
 
 \begin{thebibliography}{9}\small
@@ -402,6 +378,7 @@ Có ba hướng phát triển tự nhiên:
 \bibitem{bazgan2025} C.~Bazgan, M.~Chopin, A.~Nichterlein, C.~Richer. Parameterized complexity of segment routing. IEEE INFOCOM, 2025.
 \bibitem{cg4sr} M.~Jadin, F.~Aubry, P.~Schaus, O.~Bonaventure. CG4SR: Near optimal traffic engineering for segment routing with column generation. IEEE INFOCOM, 2019.
 \bibitem{callebaut2023} H.~Callebaut, J.~De~Boeck, B.~Fortz. Preprocessing for segment routing optimization. \emph{Networks} 82(4):459--478, 2023.
+\bibitem{roadefrepo} Orange Open Source. EURO/ROADEF Challenge 2026: dữ liệu, checker và kết quả vòng sprint. \url{https://gitlab.com/Orange-OpenSource/network-optimization-tools/challenge-roadef-2026}, 2026.
 \end{thebibliography}
 
 \end{document}

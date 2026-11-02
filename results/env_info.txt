@@ -1,0 +1,12 @@
+Thông tin môi trường chạy
+  Hệ điều hành : Linux x86_64-linux-gnu (trong Docker container)
+  CPU          : Intel(R) Xeon(R) CPU @ 2.20GHz (16 luồng)
+  RAM          : 62.8 GB tổng, 51.0 GB đang trống
+  Julia        : 1.13.2
+  JuMP         : 1.32.1
+  HiGHS.jl     : 1.26.1
+  HiGHS solver : 1.15.1
+  Graphs.jl    : 1.15.0
+  JSON3.jl     : 1.14.3
+
+Gợi ý MAX_VARS cho máy này (khoảng 1.5 GB RAM cho mỗi triệu biến): 33292699

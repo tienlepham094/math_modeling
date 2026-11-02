@@ -34,6 +34,8 @@ Cách dùng: scripts/run.sh <lệnh> [tham số]
   step6 <ids|all>    Step 6: chỉ t = 0, giới hạn 1800 s/lần. Ví dụ: step6 1 2 3
   step9 <ids|all>    Step 9: t = 0 và 1 có budget, giới hạn 3600 s/lần. Ví dụ: step9 all
   all                Chạy step6 all rồi step9 all (rất lâu, nên chạy nền)
+  cg6 <ids|all>      Phương pháp 2 (column generation) cho Step 6, chạy được cả 20 instance
+  cg9 <ids|all>      Phương pháp 2 cho Step 9 (t = 0 và 1, có budget). Kết quả ở results/cg/
   status             Xem tóm tắt kết quả đã có trong results/
   tables             Sinh bảng LaTeX report/table_step6.tex và table_step9.tex từ CSV
   report             Biên dịch report/report.tex ra report/build/report.pdf (cần pdflatex)
@@ -62,35 +64,45 @@ case "$cmd" in
         tl="${TIME_LIMIT:-$([[ $step == 6 ]] && echo 1800 || echo 3600)}"
         hard="${HARD_LIMIT:-$(( ${tl%.*} * 2 + 3600 ))}"
         for id in "${ids[@]}"; do
+            nm="$(printf 'setA-%02d' "$((10#$id))")"
+            pending="$outdir/step${step}-${nm}.pending"     # mỗi instance một file, chạy song song không đè nhau
+            t0=$SECONDS
             set +e
-            t_start=$(date +%s)
-            timeout -s KILL "$hard" "${J[@]}" src/run_experiments.jl "$step" "$id" 2>&1 | tee -a "$outdir/logs/${cmd}.log"
+            HARD_LIMIT="$hard" timeout -s KILL "$hard" "${J[@]}" src/run_experiments.jl "$step" "$id" 2>&1 | tee -a "$outdir/logs/${cmd}.log"
             code=${PIPESTATUS[0]}
-            elapsed=$(( $(date +%s) - t_start ))
             set -e
-            # Với "-s KILL", GNU timeout trả về 137 (= 128 + 9) chứ không phải 124 khi hết giờ,
-            # nên phân biệt "quá HARD_LIMIT" và "hết RAM" bằng thời gian đã chạy.
-            (( code == 137 && elapsed >= hard - 5 )) && code=124
-            pending="$outdir/step${step}.pending"
-            # cột CSV: instance,n,m,D,nvars,mlu_nowp,runs,status,obj,lb,gap,cpu_mean,cpu_std,nodes_mean,build_s
-            if [[ $code -eq 124 && -f "$pending" ]]; then
-                # 124 = lệnh timeout đã dừng julia vì quá HARD_LIMIT.
-                # obj = MLU không waypoint: nghiệm khởi đầu luôn khả thi, nên là nghiệm tốt nhất chắc chắn có.
+            el=$(( SECONDS - t0 ))
+            # Mức RAM cao nhất của container (cgroup memory.peak), ghi cả khi julia bị dừng.
+            # Chỉ có ý nghĩa khi chạy trong Docker với một instance mỗi container (memory.peak tính từ lúc container khởi động).
+            if [[ -f /.dockerenv && -r /sys/fs/cgroup/memory.peak ]]; then
+                memcsv="$outdir/memory_step${step}.csv"
+                [[ -f "$memcsv" ]] || echo "instance,seed,exit_code,elapsed_s,peak_bytes" > "$memcsv"
+                echo "$nm,${SEED_START:-0},$code,$el,$(cat /sys/fs/cgroup/memory.peak)" >> "$memcsv"
+            fi
+            # cột CSV: instance,n,m,D,nvars,mlu_nowp,runs,status,obj,lb,gap,cpu_mean,cpu_std,nodes_mean,build_s,opt_mean
+            # Lưu ý: "timeout -s KILL" trả về 137 (không phải 124) khi dừng julia, giống hệt khi hệ điều hành
+            # dừng julia vì hết RAM. Vì vậy phân biệt hai trường hợp bằng thời gian đã chạy.
+            if [[ ( $code -eq 124 || $code -eq 137 ) && $el -ge $(( hard - 5 )) && -f "$pending" ]]; then
+                # Quá HARD_LIMIT. obj = MLU không waypoint: nghiệm khởi đầu luôn khả thi, nên là nghiệm tốt nhất chắc chắn có.
                 nowp="$(cut -d, -f6 "$pending")"
-                echo "$(cat "$pending"),1,Killed,$nowp,,,$hard,0,," >> "$outdir/step${step}.csv"
+                echo "$(cat "$pending"),1,Killed,$nowp,,,$hard,0,,," >> "$outdir/step${step}.csv"
                 rm -f "$pending"
-                echo ">>> setA-$(printf %02d "$id"): vượt HARD_LIMIT = $hard s, đã dừng và ghi 'Killed' vào CSV" | tee -a "$outdir/logs/${cmd}.log"
+                echo ">>> $nm: vượt HARD_LIMIT = $hard s, đã dừng và ghi 'Killed' vào CSV" | tee -a "$outdir/logs/${cmd}.log"
             elif [[ $code -eq 137 && -f "$pending" ]]; then
-                # 137 = julia bị hệ điều hành dừng (SIGKILL) trước HARD_LIMIT: gần như chắc chắn là HẾT RAM
-                echo "$(cat "$pending"),0,Out of memory,,,,,,," >> "$outdir/step${step}.csv"
+                # Bị hệ điều hành dừng (SIGKILL) trước HARD_LIMIT: gần như chắc chắn là HẾT RAM
+                echo "$(cat "$pending"),0,Out of memory,,,,,,,," >> "$outdir/step${step}.csv"
                 rm -f "$pending"
-                echo ">>> setA-$(printf %02d "$id"): bị hệ điều hành dừng (hết RAM). Giảm MAX_VARS hoặc dùng máy nhiều RAM hơn." | tee -a "$outdir/logs/${cmd}.log"
+                echo ">>> $nm: bị hệ điều hành dừng sau $el s (hết RAM). Giảm MAX_VARS hoặc dùng máy nhiều RAM hơn." | tee -a "$outdir/logs/${cmd}.log"
             elif [[ $code -ne 0 ]]; then
-                echo ">>> setA-$(printf %02d "$id"): julia kết thúc với mã lỗi $code (xem log). Chuyển sang instance tiếp theo." | tee -a "$outdir/logs/${cmd}.log"
+                echo ">>> $nm: julia kết thúc với mã lỗi $code (xem log). Chuyển sang instance tiếp theo." | tee -a "$outdir/logs/${cmd}.log"
             fi
         done ;;
     all)
         "$0" step6 all && "$0" step9 all ;;
+    cg6|cg9)
+        [[ $# -ge 1 ]] || { echo "Thiếu danh sách instance. Ví dụ: scripts/run.sh $cmd 1 2 3  hoặc  $cmd all" >&2; exit 1; }
+        mkdir -p "$ROOT/${RESULTS_DIR:-results}/cg"
+        "${J[@]}" -t "${THREADS:-8}" src/run_cg.jl "${cmd#cg}" "$@" 2>&1 | tee -a "$ROOT/${RESULTS_DIR:-results}/cg/${cmd}.log" ;;
     status)
         for f in "${RESULTS_DIR:-results}/step6.csv" "${RESULTS_DIR:-results}/step9.csv"; do
             [[ -f "$f" ]] || { echo "($f chưa có)"; continue; }

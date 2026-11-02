@@ -6,7 +6,7 @@
 .idea
 results
 report/build
-*.pdf
-*.log
+**/*.pdf
+**/*.log
 docs
 **/*.backup

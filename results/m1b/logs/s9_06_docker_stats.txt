@@ -1,0 +1,13 @@
+# Step 9 setA-06 (phương pháp 1, máy B, ngày 2026-10-26): RAM của container m1b_s9_06 theo `docker stats --no-stream`.
+# Lượt này chạy trước khi run.sh ghi memory_step*.csv (cgroup memory.peak), nên chỉ có các mẫu dưới đây.
+# Các mẫu được chép lại ngày 2026-10-29 từ nhật ký phiên làm việc (đầu ra của lệnh docker stats lúc chạy).
+# Đây là mức đang dùng tại thời điểm lấy mẫu, không phải mức cao nhất. 43.14 GiB = 46.3 GB (GB = 10^9 byte);
+# 62.79 GiB là tổng RAM của máy (giới hạn mặc định của container).
+# Báo cáo (report/paper/paper.tex, mục VII-D) ghi "about 46 GB of RAM (samples of docker stats)".
+#
+# giờ lấy mẫu (UTC)   bộ nhớ đang dùng / giới hạn
+2026-10-26 18:59:58   43.14GiB / 62.79GiB
+2026-10-26 19:09:37   43.14GiB / 62.79GiB
+2026-10-26 19:20:54   43.14GiB / 62.79GiB
+2026-10-26 19:26:01   43.14GiB / 62.79GiB
+2026-10-26 19:40:55   43.14GiB / 62.79GiB

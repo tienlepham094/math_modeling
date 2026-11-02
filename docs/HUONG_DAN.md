@@ -253,6 +253,7 @@ scripts/run.sh tables              # sinh bảng LaTeX cho báo cáo
   - Instance chạm time limit: chạy 1 lần, vì 10 × 1800 s là quá lâu.
 - **Giới hạn kích thước:** instance có hơn `MAX_VARS` biến (mặc định 5 triệu) không được dựng, ghi "Too large".
 - **Chốt chặn cứng:** quá `HARD_LIMIT` (mặc định 2 × 1800 + 3600 = 7200 s) thì tiến trình bị dừng, ghi "Killed".
+- Các giá trị trên là mặc định của `scripts/run.sh`. **Báo cáo chính dùng quy trình khác:** mỗi seed một tiến trình, mô hình dưới 10⁶ biến chạy đủ 10 seed, lớn hơn chạy 1 seed, chốt chặn = time limit + 900 s, `MAX_VARS` = 20 triệu. Xem [TAI_TAO_KET_QUA.md](TAI_TAO_KET_QUA.md), mục 1.
 
 **Thử nghiệm không thành công (cũng nên ghi):** viết lại ràng buộc tải bằng biến gộp `f[p] = Σ_d ν_d x[d,p]` cho ít hệ số hơn, nhưng HiGHS lại giải **chậm hơn**. Vì vậy code giữ dạng gốc của đề (`aggregate = false`).
 
@@ -261,8 +262,8 @@ scripts/run.sh tables              # sinh bảng LaTeX cho báo cáo
 | Instance | Biến nhị phân (t = 0) | Máy 16 GB |
 |---|---|---|
 | 01 – 05 | 15 nghìn – 990 nghìn | chạy được |
-| 06, 08, 09 | 4.5 – 5 triệu | chạy được, nhưng cần khoảng 7 GB RAM |
-| 07, 10 – 20 | 7.9 triệu – 958 triệu | **không** |
+| 06, 08, 09 | 4.5 – 5 triệu | **không**: RAM cao nhất đo được 17.7–18.4 GB |
+| 07, 10 – 20 | 7.9 triệu – 958 triệu | **không** (setA-07 đo được 30.0 GB) |
 
 Đây không phải lỗi của bạn. Đây là bản chất của mô hình: số biến tăng theo `|D| × n²`. Paper của nhóm ra đề cũng chỉ thử mô hình này trên mạng tối đa 50 nút.
 
@@ -375,8 +376,8 @@ scripts/run.sh step9 all
 - [ ] Step 3: hiểu vì sao ECMP cho 0.75 còn cách đếm đường cho 0.667
 - [ ] Step 4: hiểu bảng tham số và định dạng 3 file JSON
 - [ ] Step 5: hiểu từng ràng buộc; toy cho MLU = 0.375
-- [ ] Step 6: có `results/step6.csv`, đủ 20 dòng. setA-06, 08, 09 chạy trên máy Intel bằng code ngày 24/10 (xem PHAN_TICH_KET_QUA.md mục 0.2)
+- [ ] Step 6: có `results/step6.csv`
 - [ ] Step 7–8: hiểu ràng buộc budget và cách tuyến tính hoá
 - [ ] Step 9: có `results/step9.csv`
 - [ ] Hỏi giảng viên: cách tính r (Table 2 hay calculating_r.pdf), và lỗi chép ở Step 9
-- [ ] Báo cáo: điền tên, cập nhật bảng (`scripts/run.sh tables`), sửa chỗ `[TODO]` về setA-06, 08, 09, ≤ 10 trang (hiện 9), biên dịch ra PDF
+- [ ] Báo cáo: điền tên, cập nhật bảng, viết nhận xét, ≤ 10 trang, biên dịch ra PDF

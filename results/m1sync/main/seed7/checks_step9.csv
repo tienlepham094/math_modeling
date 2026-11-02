@@ -1,0 +1,4 @@
+instance,seed,status,obj,mlu_paths,mlu_t0,mlu_t1,cycle_segments,max_segments,dist,kappa,valid
+setA-03,7,Not Optimal,1.000001,1.000001,1.000001,0.601896,0,1,0,53,true
+setA-02,7,Optimal,0.903075,0.903075,0.810510,0.903075,4,3,0,63,true
+setA-01,7,Optimal,0.929384,0.929384,0.929384,0.712033,10,3,7,51,true

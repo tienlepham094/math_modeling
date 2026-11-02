@@ -124,9 +124,12 @@ function set_no_waypoint_start!(model, inst::Instance, rs, x, S)
     return mlu
 end
 
-# Gọi optimize! và thu các thông tin cần ghi vào bảng kết quả
+# Gọi optimize! và thu các thông tin cần ghi vào bảng kết quả.
+#   opt = thời gian thực của CẢ lệnh optimize! (đúng định nghĩa CPU time của đề): gồm chép mô hình JuMP vào HiGHS
+#         và giải. Nên gọi một lần "khởi động" trước (xem run_experiments.jl) để không tính thời gian biên dịch của Julia.
+#   cpu = thời gian giải do HiGHS báo (solve_time), không gồm phần chép mô hình; dùng để xét HiGHS có vượt time limit không.
 function solve_and_report(model)
-    optimize!(model)
+    t_opt = @elapsed optimize!(model)
     st = termination_status(model)
     feasible = primal_status(model) == FEASIBLE_POINT
     status = st == OPTIMAL ? "Optimal" :
@@ -136,7 +139,7 @@ function solve_and_report(model)
     lb  = objective_bound(model)
     gap = status == "Optimal" ? 0.0 : 1.0 - lb / obj         # công thức của đề
     return (status = status, obj = obj, lb = lb, gap = gap,
-            cpu = solve_time(model), nodes = node_count(model))
+            cpu = solve_time(model), opt = t_opt, nodes = node_count(model))
 end
 
 # Đọc danh sách waypoint của demand d tại chu kỳ t từ nghiệm.
