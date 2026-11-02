@@ -375,8 +375,8 @@ scripts/run.sh step9 all
 - [ ] Step 3: hiểu vì sao ECMP cho 0.75 còn cách đếm đường cho 0.667
 - [ ] Step 4: hiểu bảng tham số và định dạng 3 file JSON
 - [ ] Step 5: hiểu từng ràng buộc; toy cho MLU = 0.375
-- [ ] Step 6: có `results/step6.csv`
+- [ ] Step 6: có `results/step6.csv`, đủ 20 dòng. setA-06, 08, 09 chạy trên máy Intel bằng code ngày 24/10 (xem PHAN_TICH_KET_QUA.md mục 0.2)
 - [ ] Step 7–8: hiểu ràng buộc budget và cách tuyến tính hoá
 - [ ] Step 9: có `results/step9.csv`
 - [ ] Hỏi giảng viên: cách tính r (Table 2 hay calculating_r.pdf), và lỗi chép ở Step 9
-- [ ] Báo cáo: điền tên, cập nhật bảng, viết nhận xét, ≤ 10 trang, biên dịch ra PDF
+- [ ] Báo cáo: điền tên, cập nhật bảng (`scripts/run.sh tables`), sửa chỗ `[TODO]` về setA-06, 08, 09, ≤ 10 trang (hiện 9), biên dịch ra PDF
