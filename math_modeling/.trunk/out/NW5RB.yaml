@@ -1,0 +1,22 @@
+trunk_cli_version: 1.25.0
+title: Check [[on-demand] [prettier:format:docs/CAI_DAT_VA_CHAY.md:HEAD]]
+report:
+  - linter:
+      command: |
+        /home/taiht15/.cache/trunk/tools/prettier/3.9.10-75ed1176cad0678e65722e25f9f23419/node_modules/.bin/prettier -w docs/CAI_DAT_VA_CHAY.md
+      stdin_path: (none)
+      run_from: /tmp/trunk-1000/dQy2nr/njid1o
+      timeout: 10m
+      rerun: (cd /tmp/trunk-1000/dQy2nr/njid1o; env -i 'PATH=/home/taiht15/.cache/trunk/tools/prettier/3.9.10-75ed1176cad0678e65722e25f9f23419/node_modules/.bin:/home/taiht15/.cache/trunk/tools/node/18.12.1-00ae74f39ac4de3ff3c7e3686016ebf3/bin:/home/taiht15/.cache/trunk/tools/node/18.12.1-00ae74f39ac4de3ff3c7e3686016ebf3:/home/taiht15/.vscode-server/bin/6d62b1d5dace93a33b3a6d3eca1317bd5e15bcb1/bin/remote-cli:/home/taiht15/.juliaup/bin:/home/taiht15/google-cloud-sdk/bin:/home/taiht15/miniconda3/bin:/home/taiht15/miniconda3/condabin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/usr/lib/wsl/lib:/mnt/c/WINDOWS/system32:/mnt/c/WINDOWS:/mnt/c/WINDOWS/System32/Wbem:/mnt/c/WINDOWS/System32/WindowsPowerShell/v1.0:/mnt/c/WINDOWS/System32/OpenSSH:/mnt/c/Program Files/Cloudflare/Cloudflare WARP:/mnt/c/Users/taiht15/.local/bin:/mnt/c/Users/taiht15/AppData/Local/Microsoft/WindowsApps:/mnt/c/Users/taiht15/AppData/Local/Programs/Microsoft VS Code/bin:/mnt/c/Users/taiht15/AppData/Local/Programs/PyCharm 2025.3.1/bin:/usr/local/go/bin:/home/taiht15/go/bin' HOME=/home/taiht15 NODE_PATH=/home/taiht15/.cache/trunk/tools/prettier/3.9.10-75ed1176cad0678e65722e25f9f23419/node_modules /home/taiht15/.cache/trunk/tools/prettier/3.9.10-75ed1176cad0678e65722e25f9f23419/node_modules/.bin/prettier -w docs/CAI_DAT_VA_CHAY.md)
+      affects_cache:
+        []
+      direct_configs:
+        []
+      exit_status: exited
+      exit_code: 0
+      stdout: |
+        docs/CAI_DAT_VA_CHAY.md 260ms
+
+      stderr: (none)
+    parser: |
+      (none)

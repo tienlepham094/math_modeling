@@ -52,4 +52,5 @@ results/tmp/
 # Docker / LaTeX build, file tạm của thí nghiệm
 report/build/
 results/*.pending
+
 *.zip

@@ -1,0 +1,2 @@
+instance,n,m,D,nvars,mlu_nowp,runs,status,obj,lb,gap,cpu_mean,cpu_std,nodes_mean,build_s
+setA-06,100,500,500,14850000,1.000000,1,Killed,1.000000,,,5400,0,,

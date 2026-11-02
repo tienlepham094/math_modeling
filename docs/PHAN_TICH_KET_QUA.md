@@ -7,52 +7,9 @@ File này giải thích:
 3. Các hiện tượng bất thường và cách giải thích chúng.
 4. Nên viết gì vào phần nhận xét của báo cáo.
 
-> Số liệu dưới đây lấy từ `results/step6.csv` và `results/step9.csv` trên máy gốc (Intel Core 7 240H, 16 GB RAM, HiGHS 1.15.1). Mục 0 là cập nhật ngày 24/10/2026; các mục sau được sửa theo đó. Dùng `scripts/run.sh status` để xem số mới nhất.
-
----
-
-## 0. Cập nhật 24/10/2026 (đọc trước)
-
-### 0.1 Các lỗi đã sửa
-
-| Lỗi | Ảnh hưởng | Cách sửa |
-|---|---|---|
-| `src/data.jl` so sánh độ dài đường đi bằng `==`. Ở 4 instance có trọng số là số thực (05, 08, 12, 14), cùng một độ dài nhưng cộng theo thứ tự khác nhau, `(a+b)+c` và `a+(b+c)`, lệch nhau ở chữ số cuối. Khi đó ECMP bỏ sót cung của đường ngắn nhất và luồng "biến mất" | setA-08: 12 560/22 350 cặp nút mất luồng (101/200 demand). setA-12, 14 tương tự. **setA-05 không bị**, nên kết quả 01–05 vẫn đúng. MLU không waypoint của setA-12 bị sai: 0.4400 (Step 6) và 0.7201 (Step 9), đúng là 1.0001 | So sánh với sai số tương đối 1e-9. Đã kiểm tra lại cả 20 instance ở cả hai chu kỳ: không cặp nào mất luồng, không cặp nào "gần bằng". Đã ghi lại các dòng Too large của 08, 12, 14 trong CSV |
-| `scripts/run.sh`: với `timeout -s KILL`, lệnh `timeout` trả về mã 137 (không phải 124) khi hết giờ | Instance bị chốt chặn cứng dừng sẽ bị ghi nhầm là "Out of memory" | Phân biệt bằng thời gian đã chạy |
-| `run_server.sh` gọi `tables` với `RESULTS_DIR=results/server` | Ghi đè bảng của báo cáo bằng số liệu biến thể không đi vòng | Bảng sinh từ `results/server` giờ được ghi vào `results/server/` |
-
-### 0.2 Việc còn lại: Step 6 cho setA-06, 08, 09 trên máy Intel
-
-Ba instance này (4.5–5 triệu biến) dựng được mô hình nên phải có trong bảng. setA-08 **bắt buộc** chạy bằng code mới. 06 và 09 dùng trọng số nguyên, nên nếu `results/step6.csv` trên máy Intel đã có dòng của chúng (từ `results/finish_runs.sh`, mô hình của đề) thì giữ lại.
-
-```bash
-# trên máy Intel (WSL), trong thư mục project
-grep -E '^setA-0(6|8|9),' results/step6.csv            # xem đã có dòng nào chưa
-grep -E '^setA-0(6|9),' results/step6.csv > /tmp/keep_06_09.csv   # giữ 06, 09 (nếu có); KHÔNG giữ 08
-git checkout -- results/step6.csv results/step9.csv report/table_step6.tex report/table_step9.tex
-git pull
-cat /tmp/keep_06_09.csv >> results/step6.csv
-scripts/run.sh test                                     # phải in "TẤT CẢ ĐẠT"
-HARD_LIMIT=2700 nohup scripts/run.sh step6 9 8 6 > step6_060809.out 2>&1 &   # tối đa ~45 phút/instance
-# instance đã có dòng trong CSV sẽ tự được bỏ qua. Khi xong:
-scripts/run.sh tables && scripts/run.sh status
-```
-
-- Chạy đúng mô hình của đề (không đặt `NO_LOOPS`), để khớp Bảng step6 của báo cáo.
-- Nếu một instance bị ghi "Out of memory": WSL2 mặc định chỉ được khoảng một nửa RAM của máy. Tăng `memory=` trong `%UserProfile%\.wslconfig`, chạy `wsl --shutdown`, xoá dòng đó khỏi CSV rồi chạy lại.
-- Sau đó sửa chỗ `[TODO]` trong mục 3.3 của `report/report.tex` (có sẵn hai câu mẫu trong comment ngay trên) và biên dịch lại báo cáo.
-
-### 0.3 Kết quả kiểm tra mới (chạy lại trên máy thứ hai, Apple M5, seed 0)
-
-- **Instance toy, vét cạn** mọi segment path có tối đa 4 segment (206 path cho mỗi demand ở mỗi chu kỳ): t = 0 tối ưu 0.375 (không waypoint là 0.4375); t = 1 không waypoint đã là 0.375 và không giảm được. Budget κ = 20 không ràng buộc vì hai demand đổi đường tốn tối đa 16. Vậy MLU tối ưu hai chu kỳ là 0.375. Nghiệm tối ưu không duy nhất: trên máy này, Step 8 trả về ⟨v0,v4,v2,v5⟩ ở t = 0 và bỏ waypoint ở t = 1.
-- **`src/verify_solutions.jl`**: giải lại rồi đọc segment path bằng đường đi Euler, tính lại tải từ danh sách segment, tính `dist` thật theo định nghĩa của đề.
-  - Step 6, 01–03: MLU tính lại đúng bằng U. Nghiệm của 02 và 03 có chu trình rời (2 segment), vô hại với một chu kỳ.
-  - Step 9, 01: U = 0.929384; MLU từng chu kỳ 0.929384 và 0.582881; chu trình rời 6 segment; `dist` thật = 0 ≤ κ = 51.
-  - Step 9, 02: U = 0.903075; MLU từng chu kỳ 0.826175 và 0.903075; chu trình rời 24 segment; `dist` thật = 0 ≤ κ = 63.
-  - Step 9, 03: U = 0.943543 (trên Mac chưa chứng minh được tối ưu vì máy quá tải, nhưng đúng bằng giá trị tối ưu đã chứng minh trên máy Intel); MLU từng chu kỳ 0.943543 và 0.601896; không có chu trình rời; `dist` thật = 8 ≤ κ = 53 (2 demand đổi đường).
-  - Kết luận: sau khi bỏ chu trình rời, nghiệm vẫn hợp lệ, nên giá trị tối ưu ở Step 9 là thật.
-- **Giải riêng t = 1** (mạng G₁, lưu lượng ν(d,1), không budget): 01 → 0.346350, 02 → **0.903075**, 03 → 0.402612. Với setA-02, MLU hai chu kỳ đúng bằng tối ưu của riêng t = 1, nên **budget κ = 63 không ràng buộc**: giới hạn nằm ở chính chu kỳ t = 1, tức mạng thiếu một cung với lưu lượng của t = 1 (mục 4.5 cũ giải thích sai điểm này).
-- **Biến thể không đi vòng** (`results/server/step6.csv`, cùng máy Intel, chạy trong Docker): nhanh hơn 4–19 lần ở 01–03; setA-04 tìm được 0.4791 (gap 4.18%, cùng cận dưới 0.4591); nhưng setA-05 không có cận dưới sau 6037 s, trong khi mô hình của đề giải tối ưu trong 1706 s. Vì vậy bảng chính của báo cáo dùng mô hình của đề, còn biến thể này nằm ở một bảng so sánh riêng.
+> **Lưu ý (29/10/2026): số liệu trong tài liệu này đã cũ** (laptop, ngày 22/10, **trước** khi sửa lỗi `r_ecmp`; các file đó nay nằm ở `results/old_2026-10-22/`). Ví dụ MLU không waypoint của setA-12 ghi 0.44, đúng ra là 1.0001. Phần giải thích các cột và hiện tượng vẫn dùng được, nhưng **đừng lấy số ở đây cho báo cáo**. Số liệu hiện hành: [report/paper/paper.pdf](../report/paper/paper.pdf) và [results/README.md](../results/README.md).
+>
+> Số liệu dưới đây lấy từ `results/step6.csv` và `results/step9.csv` trên máy gốc (Intel Core 7 240H, 16 GB RAM, HiGHS 1.15.1), tính đến 22/10/2026 tối. Những instance ghi "(đang chạy)" sẽ có số sau. Sau khi chạy xong, dùng `scripts/run.sh status` để xem số mới nhất.
 
 ---
 
@@ -88,8 +45,8 @@ Mỗi dòng ứng với một instance. File `step6.csv` là chỉ t = 0; file `
 | 03 | 50 | 20 | 49 000 | 1.0000 | **0.9435** | 6% | Optimal | 0 | 58 ± 93 | 9 |
 | 04 | 50 | 200 | 490 000 | 0.6918 | 0.6918 | 0% | Not Optimal | 33.6% | 1800 | 1 |
 | 05 | 100 | 100 | 990 000 | 0.3333 | **0.1155** | 65% | Optimal | 0 | 1706 | 1 |
-| 06, 08, 09 | 100–150 | 200–500 | 4.5–5 triệu | 0.61–1.0 | chưa chạy (chạy trên máy Intel bằng code mới, mục 0.2) | | | | | |
-| 07, 10–20 | 100–400 | 400–6000 | 7.9 triệu – 958 triệu | 0.63–1.0 | không dựng được (Too large) | | | | | |
+| 06, 08, 09 | 100–150 | 200–500 | 4.5–5 triệu | 1.0000 | (đang chạy) | | | | | |
+| 07, 10–20 | 100–400 | 400–6000 | 7.9 triệu – 958 triệu | 0.44–1.0 | không dựng được (Too large) | | | | | |
 
 ## 3. Kết quả Step 9 (t = 0 và t = 1, có budget, giới hạn 3600 s)
 
@@ -99,8 +56,8 @@ Mỗi dòng ứng với một instance. File `step6.csv` là chỉ t = 0; file `
 | 02 | 63 | 117 450 | **1.0981** | **0.9031** | cao hơn (0.5486) | Optimal | 0 | 172 ± 94 | 4 |
 | 03 | 53 | 147 000 | 1.0000 | **0.9435** | bằng | Optimal | 0 | 704 | 1 |
 | 04 | 44 | 1 470 000 | 1.0000 | 1.0000 | | Not Optimal | không có LB | **9905\*** | 1 |
-| 05 | **1** | 2 970 000 | 1.0000 | 1.0000 (nghiệm khởi đầu) | | Bị dừng | | > 10800 | 1 |
-| 06–20 | | 13 triệu – 2.9 tỉ | ≈ 1.0 | không dựng được (Too large) | | | | | |
+| 05 | **1** | 2 970 000 | 1.0000 | (đang chạy) | | | | | |
+| 06–20 | | 13 triệu – 2.9 tỉ | 0.72–1.0 | không dựng được (Too large) | | | | | |
 
 \* vượt time limit 3600 s (xem mục 4.4).
 
@@ -142,7 +99,7 @@ Mỗi dòng ứng với một instance. File `step6.csv` là chỉ t = 0; file `
 ### 4.5 Step 9 so với Step 6
 
 - **setA-01, 03:** MLU hai chu kỳ **bằng** MLU chỉ t = 0. Nghĩa là t = 0 là chu kỳ khó hơn, và tại t = 1 (dù có link bị tắt) budget đủ để giữ tải không vượt mức đó.
-- **setA-02:** MLU tăng từ 0.5486 (chỉ t = 0) lên 0.9031. Tại t = 1, nếu không có waypoint thì link nặng nhất **quá tải 109.8%**. Mô hình kéo xuống 90.3%, đúng bằng MLU tối ưu khi giải riêng t = 1 mà không có budget (mục 0.3). Vậy **giới hạn nằm ở chính chu kỳ t = 1 (thiếu một link, lưu lượng của t = 1), không phải ở budget κ = 63**. Ngoài ra, vì mục tiêu min U chỉ quan tâm chu kỳ nặng nhất, nghiệm tìm được có MLU tại t = 0 là 0.826, cao hơn hẳn 0.5486.
+- **setA-02:** MLU tăng từ 0.5486 (chỉ t = 0) lên 0.9031. Tại t = 1, nếu không có waypoint thì link nặng nhất **quá tải 109.8%**. Với budget κ = 63, mô hình kéo được xuống 90.3% nhưng không thấp hơn được. Đây là ví dụ rõ về **tác động của bảo trì và giới hạn budget**.
 - **Instance có κ = 1** (05, 10, 17): không demand nào được đổi đường, nên mô hình phải tìm **một routing dùng chung cho cả hai chu kỳ**.
 
 ### 4.6 Kích thước, không phải độ khó, là giới hạn chính
@@ -157,7 +114,7 @@ Mỗi dòng ứng với một instance. File `step6.csv` là chỉ t = 0; file `
 
 ### 4.7 So sánh với tài liệu
 
-- Jaumard, Tran, Ziazet (2026) áp dụng column generation cho **toàn bộ SetA** (giải tuần tự từng chu kỳ), với gap LP–ILP trung bình 3.12% tại t = 0 và 13.05% tại t = 1. Hướng của họ là chỉ sinh các segment path "có ích" thay vì tạo biến cho mọi cặp nút.
+- Jaumard, Tran, Ziazet (2026) giải **toàn bộ SetA** bằng column generation, với gap trung bình 3.12% tại t = 0 và 13.05% tại t = 1. Hướng của họ là chỉ sinh các segment path "có ích" thay vì tạo biến cho mọi cặp nút.
 - Đây là hướng mở rộng tự nhiên cho phần kết luận.
 - Họ không công bố MLU từng instance, nên không so sánh trực tiếp con số được.
 
@@ -165,7 +122,7 @@ Mỗi dòng ứng với một instance. File `step6.csv` là chỉ t = 0; file `
 
 ## 5. Gợi ý viết nhận xét trong báo cáo
 
-> **Đã thay thế (24/10/2026):** nhận xét chính thức nằm trong `report/report.tex`, mục 3.3–3.4 và Kết luận. Các đoạn nháp dưới đây giữ lại để tham khảo; đoạn về setA-02 trong bản nháp Step 9 đã sai (budget không ràng buộc, xem mục 0.3).
+Các đoạn dưới đây là **bản nháp**. Hãy cập nhật số khi thí nghiệm xong và viết lại bằng lời của bạn.
 
 **Sau bảng Step 6:**
 

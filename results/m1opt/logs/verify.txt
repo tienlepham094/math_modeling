@@ -1,0 +1,171 @@
+== results/m1opt/main/seed0 step6
+setA-01 step6: MLU 0.929384  budget 0/0 OK
+setA-02 step6: MLU 0.548578  budget 0/0 OK
+setA-03 step6: MLU 0.943543  budget 0/0 OK
+setA-04 step6: MLU 0.691824  budget 0/0 OK
+setA-05 step6: MLU 0.115524  budget 0/0 OK
+setA-06 step6: MLU 1.000000  budget 0/0 OK
+setA-07 step6: MLU 0.907989  budget 0/0 OK
+setA-08 step6: MLU 0.583161  budget 0/0 OK
+setA-09 step6: MLU 0.611137  budget 0/0 OK
+9 nghiệm đạt
+== results/m1opt/main/seed0 step9
+setA-01 step9: MLU 0.929384  budget 25/51 OK
+setA-02 step9: MLU 0.903075  budget 0/63 OK
+setA-03 step9: MLU 0.943543  budget 0/53 OK
+3 nghiệm đạt
+== results/m1opt/main/seed1 step6
+setA-01 step6: MLU 0.929384  budget 0/0 OK
+setA-02 step6: MLU 0.548578  budget 0/0 OK
+setA-03 step6: MLU 0.943543  budget 0/0 OK
+setA-04 step6: MLU 0.691824  budget 0/0 OK
+4 nghiệm đạt
+== results/m1opt/main/seed1 step9
+setA-01 step9: MLU 0.929384  budget 3/51 OK
+setA-02 step9: MLU 0.903075  budget 3/63 OK
+setA-03 step9: MLU 0.982168  budget 0/53 OK
+3 nghiệm đạt
+== results/m1opt/main/seed2 step6
+setA-01 step6: MLU 0.929384  budget 0/0 OK
+setA-02 step6: MLU 0.548578  budget 0/0 OK
+setA-03 step6: MLU 0.943543  budget 0/0 OK
+setA-04 step6: MLU 0.546734  budget 0/0 OK
+setA-05 step6: MLU 0.146952  budget 0/0 OK
+5 nghiệm đạt
+== results/m1opt/main/seed2 step9
+setA-01 step9: MLU 0.929384  budget 7/51 OK
+setA-02 step9: MLU 0.903075  budget 0/63 OK
+setA-03 step9: MLU 0.943543  budget 3/53 OK
+3 nghiệm đạt
+== results/m1opt/main/seed3 step6
+setA-01 step6: MLU 0.929384  budget 0/0 OK
+setA-02 step6: MLU 0.548578  budget 0/0 OK
+setA-03 step6: MLU 0.943543  budget 0/0 OK
+setA-04 step6: MLU 0.691824  budget 0/0 OK
+4 nghiệm đạt
+== results/m1opt/main/seed3 step9
+setA-01 step9: MLU 0.929384  budget 0/51 OK
+setA-02 step9: MLU 0.903075  budget 3/63 OK
+setA-03 step9: MLU 0.943543  budget 3/53 OK
+3 nghiệm đạt
+== results/m1opt/main/seed4 step6
+setA-01 step6: MLU 0.929384  budget 0/0 OK
+setA-02 step6: MLU 0.548578  budget 0/0 OK
+setA-03 step6: MLU 0.943543  budget 0/0 OK
+setA-04 step6: MLU 0.691824  budget 0/0 OK
+setA-05 step6: MLU 0.163858  budget 0/0 OK
+5 nghiệm đạt
+== results/m1opt/main/seed4 step9
+setA-01 step9: MLU 0.929384  budget 12/51 OK
+setA-02 step9: MLU 0.903075  budget 4/63 OK
+setA-03 step9: MLU 0.943543  budget 3/53 OK
+3 nghiệm đạt
+== results/m1opt/main/seed5 step6
+setA-01 step6: MLU 0.929384  budget 0/0 OK
+setA-02 step6: MLU 0.548578  budget 0/0 OK
+setA-03 step6: MLU 0.943543  budget 0/0 OK
+setA-04 step6: MLU 0.691824  budget 0/0 OK
+4 nghiệm đạt
+== results/m1opt/main/seed5 step9
+setA-01 step9: MLU 0.929384  budget 0/51 OK
+setA-02 step9: MLU 0.903075  budget 5/63 OK
+setA-03 step9: MLU 0.943543  budget 0/53 OK
+3 nghiệm đạt
+== results/m1opt/main/seed6 step6
+setA-01 step6: MLU 0.929384  budget 0/0 OK
+setA-02 step6: MLU 0.548578  budget 0/0 OK
+setA-03 step6: MLU 0.943543  budget 0/0 OK
+setA-04 step6: MLU 0.691824  budget 0/0 OK
+4 nghiệm đạt
+== results/m1opt/main/seed6 step9
+setA-01 step9: MLU 0.929384  budget 5/51 OK
+setA-02 step9: MLU 0.903075  budget 0/63 OK
+setA-03 step9: MLU 0.943543  budget 3/53 OK
+3 nghiệm đạt
+== results/m1opt/main/seed7 step6
+setA-01 step6: MLU 0.929384  budget 0/0 OK
+setA-02 step6: MLU 1.000000  budget 0/0 OK
+setA-03 step6: MLU 0.943543  budget 0/0 OK
+setA-04 step6: MLU 0.691824  budget 0/0 OK
+setA-05 step6: MLU 0.194631  budget 0/0 OK
+5 nghiệm đạt
+== results/m1opt/main/seed7 step9
+setA-01 step9: MLU 0.929384  budget 7/51 OK
+setA-02 step9: MLU 0.903075  budget 0/63 OK
+setA-03 step9: MLU 1.000001  budget 0/53 OK
+3 nghiệm đạt
+== results/m1opt/main/seed8 step6
+setA-01 step6: MLU 0.929384  budget 0/0 OK
+setA-02 step6: MLU 0.548578  budget 0/0 OK
+setA-03 step6: MLU 0.943543  budget 0/0 OK
+setA-04 step6: MLU 0.691824  budget 0/0 OK
+4 nghiệm đạt
+== results/m1opt/main/seed8 step9
+setA-01 step9: MLU 0.929384  budget 14/51 OK
+setA-02 step9: MLU 0.903075  budget 0/63 OK
+setA-03 step9: MLU 0.943543  budget 4/53 OK
+3 nghiệm đạt
+== results/m1opt/main/seed9 step6
+setA-01 step6: MLU 0.929384  budget 0/0 OK
+setA-02 step6: MLU 0.548578  budget 0/0 OK
+setA-03 step6: MLU 0.943543  budget 0/0 OK
+setA-04 step6: MLU 0.691824  budget 0/0 OK
+setA-05 step6: MLU 0.115524  budget 0/0 OK
+5 nghiệm đạt
+== results/m1opt/main/seed9 step9
+setA-01 step9: MLU 0.929384  budget 3/51 OK
+setA-02 step9: MLU 0.903075  budget 0/63 OK
+setA-03 step9: MLU 0.943543  budget 0/53 OK
+3 nghiệm đạt
+== results/m1opt/noloop/seed0 step6
+setA-01 step6: MLU 0.929384  budget 0/0 OK
+setA-02 step6: MLU 0.548578  budget 0/0 OK
+setA-03 step6: MLU 0.943543  budget 0/0 OK
+setA-04 step6: MLU 0.479108  budget 0/0 OK
+setA-05 step6: MLU 0.115524  budget 0/0 OK
+5 nghiệm đạt
+== results/m1opt/noloop/seed1 step6
+setA-01 step6: MLU 0.929384  budget 0/0 OK
+setA-02 step6: MLU 0.548578  budget 0/0 OK
+setA-03 step6: MLU 0.943543  budget 0/0 OK
+3 nghiệm đạt
+== results/m1opt/noloop/seed2 step6
+setA-01 step6: MLU 0.929384  budget 0/0 OK
+setA-02 step6: MLU 0.548578  budget 0/0 OK
+setA-03 step6: MLU 0.943543  budget 0/0 OK
+3 nghiệm đạt
+== results/m1opt/noloop/seed3 step6
+setA-01 step6: MLU 0.929384  budget 0/0 OK
+setA-02 step6: MLU 0.548578  budget 0/0 OK
+setA-03 step6: MLU 0.943543  budget 0/0 OK
+3 nghiệm đạt
+== results/m1opt/noloop/seed4 step6
+setA-01 step6: MLU 0.929384  budget 0/0 OK
+setA-02 step6: MLU 0.548578  budget 0/0 OK
+setA-03 step6: MLU 0.943543  budget 0/0 OK
+3 nghiệm đạt
+== results/m1opt/noloop/seed5 step6
+setA-01 step6: MLU 0.929384  budget 0/0 OK
+setA-02 step6: MLU 0.548578  budget 0/0 OK
+setA-03 step6: MLU 0.943543  budget 0/0 OK
+3 nghiệm đạt
+== results/m1opt/noloop/seed6 step6
+setA-01 step6: MLU 0.929384  budget 0/0 OK
+setA-02 step6: MLU 0.548578  budget 0/0 OK
+setA-03 step6: MLU 0.943543  budget 0/0 OK
+3 nghiệm đạt
+== results/m1opt/noloop/seed7 step6
+setA-01 step6: MLU 0.929384  budget 0/0 OK
+setA-02 step6: MLU 0.548578  budget 0/0 OK
+setA-03 step6: MLU 0.943543  budget 0/0 OK
+3 nghiệm đạt
+== results/m1opt/noloop/seed8 step6
+setA-01 step6: MLU 0.929384  budget 0/0 OK
+setA-02 step6: MLU 0.548578  budget 0/0 OK
+setA-03 step6: MLU 0.943543  budget 0/0 OK
+3 nghiệm đạt
+== results/m1opt/noloop/seed9 step6
+setA-01 step6: MLU 0.929384  budget 0/0 OK
+setA-02 step6: MLU 0.548578  budget 0/0 OK
+setA-03 step6: MLU 0.943543  budget 0/0 OK
+3 nghiệm đạt

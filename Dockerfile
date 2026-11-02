@@ -3,7 +3,8 @@
 # Image Docker cho project Orange T-ASR: Julia + JuMP + HiGHS + dữ liệu SetA.
 #
 #   docker build -t orange-tasr .                      # image chạy thí nghiệm (mặc định)
-#   docker build -t orange-tasr-report --target report .   # thêm LaTeX để biên dịch báo cáo
+#   docker build -t orange-tasr-report --target report .   # thêm LaTeX (bản nháp cũ report/report.tex)
+#   docker build -t orange-tasr-paper -f Dockerfile.paper . # báo cáo chính report/paper/paper.tex (cần orange-tasr-report)
 #
 #   docker run --rm orange-tasr test                   # kiểm tra trên toy
 #   docker run --rm -v "$PWD/results:/app/results" orange-tasr step6 1 2 3

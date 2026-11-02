@@ -16,5 +16,6 @@ println("  Graphs.jl    : ", pkgversion(Graphs))
 println("  JSON3.jl     : ", pkgversion(JSON3))
 println()
 free_gb = Sys.free_memory() / 2^30
-println("Gợi ý MAX_VARS cho máy này (khoảng 1.5 GB RAM cho mỗi triệu biến): ",
-        round(Int, max(free_gb - 1, 0) / 1.5 * 1e6))
+# Số đo RAM cao nhất trên máy B (28/10/2026): 3.7–4.0 GB cho mỗi triệu biến (Step 6), 3.4 GB (Step 9), cộng ~1.5 GB cố định.
+println("Gợi ý MAX_VARS cho máy này (khoảng 4 GB RAM cho mỗi triệu biến, cộng 1.5 GB cố định): ",
+        round(Int, max(free_gb * 2^30 / 1e9 - 1.5, 0) / 4.0 * 1e6))

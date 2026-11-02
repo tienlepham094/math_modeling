@@ -1,0 +1,4 @@
+instance,seed,exit_code,elapsed_s,peak_bytes
+setA-03,3,0,64,910868480
+setA-02,3,0,53,826839040
+setA-01,3,0,29,621461504
