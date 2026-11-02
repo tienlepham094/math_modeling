@@ -89,45 +89,10 @@ end
 # ---------------------------------------------------------------------
 const SplitCoef = Dict{Tuple{Int,Int},Vector{Tuple{Int,Float64}}}
 
-# So sánh hai độ dài đường đi với sai số tương đối, KHÔNG dùng ==.
-# Ở setA-05, 08, 12, 14 trọng số không phải số nguyên (ví dụ 0.0037), nên cùng một độ dài
-# cộng theo thứ tự khác nhau, (a+b)+c và a+(b+c), có thể lệch ở chữ số cuối. Khi so sánh bằng ==,
-# cung nằm trên đường ngắn nhất bị bỏ sót và luồng "biến mất" (setA-08: 101/200 demand mất luồng).
-# Trọng số trong SetA đều >= 1e-3, nên sai số tương đối 1e-9 nhỏ hơn rất nhiều so với chênh lệch
-# giữa hai độ dài thật sự khác nhau (đã kiểm tra trên cả 20 instance: không có cặp nào "gần bằng").
-const PATH_TOL = 1e-9
-# isfinite: nếu không có đường đi (độ dài Inf) thì không bao giờ coi là "bằng nhau"
-same_length(x, y) = isfinite(x) && isfinite(y) && abs(x - y) <= PATH_TOL * max(1.0, abs(x), abs(y))
-
-# Số đường ngắn nhất sigma[i, j], đếm trên đồ thị đường ngắn nhất với cùng sai số như trên
-# (pathcounts của Graphs.jl so sánh độ dài bằng ==, nên có thể đếm thiếu khi trọng số là số thực).
-function count_shortest_paths(inst::Instance, t::Int, d::Matrix{Float64})
-    n = inst.n
-    sigma = zeros(Float64, n, n)
-    into = [Int[] for _ in 1:n]
-    for a in alive_arcs(inst, t)
-        push!(into[inst.to[a]], a)
-    end
-    for i in 1:n
-        sigma[i, i] = 1.0
-        for v in sortperm(d[i, :])                 # gần i trước, xa i sau
-            (v == i || isinf(d[i, v])) && continue
-            for a in into[v]
-                u = inst.from[a]
-                if isfinite(d[i, u]) && same_length(d[i, u] + inst.metric[a], d[i, v])
-                    sigma[i, v] += sigma[i, u]
-                end
-            end
-        end
-    end
-    return sigma
-end
-
 # Cách 1 (calculating_r.pdf): tỉ lệ số đường ngắn nhất đi qua cung a
 function r_pathcount(inst::Instance, t::Int)
     g, W = graph_at(inst, t)
-    d, _ = all_pairs_shortest_data(g, W)
-    sigma = count_shortest_paths(inst, t, d)
+    d, sigma = all_pairs_shortest_data(g, W)
     A = alive_arcs(inst, t)
     r = SplitCoef()
     for i in 1:inst.n, j in 1:inst.n
@@ -135,7 +100,7 @@ function r_pathcount(inst::Instance, t::Int)
         lst = Tuple{Int,Float64}[]
         for a in A
             u, v = inst.from[a], inst.to[a]
-            if isfinite(d[i, u]) && isfinite(d[v, j]) && same_length(d[i, u] + inst.metric[a] + d[v, j], d[i, j])
+            if d[i, u] + inst.metric[a] + d[v, j] == d[i, j]
                 push!(lst, (a, sigma[i, u] * sigma[v, j] / sigma[i, j]))
             end
         end
@@ -156,8 +121,10 @@ function r_ecmp(inst::Instance, t::Int)
     r = SplitCoef()
     flow = zeros(inst.n)
     for j in 1:inst.n
-        # nh[u] = các cung ra của u nằm trên một đường ngắn nhất u -> j
-        nh = [[a for a in out[u] if isfinite(d[u, j]) && same_length(d[u, j], inst.metric[a] + d[inst.to[a], j])]
+        # nh[u] = các cung ra của u nằm trên một đường ngắn nhất u -> j.
+        # So sánh có sai số: metric là số thập phân (vd. 0.0037) nên tổng tính theo hai thứ tự
+        # khác nhau có thể lệch ở chữ số cuối; dùng == thì mất luồng (setA-08, 12, 14).
+        nh = [[a for a in out[u] if isapprox(d[u, j], inst.metric[a] + d[inst.to[a], j]; rtol = 1e-9)]
               for u in 1:inst.n]
         order = sortperm(d[:, j]; rev = true)      # xa j trước, gần j sau
         for i in 1:inst.n

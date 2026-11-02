@@ -1,0 +1,42 @@
+# Transcribed from Tables III and IV of the authors report (method 1, machine A: AMD EPYC 7713, 32 logical CPUs, 128 GB), PDF dated 2026-10-25.
+step,instance,mlu0,obj,cpu_s,status,gap,nodes,runs,note
+6,setA-01,1.0000,0.9294,8.8,Optimal,0,1.0,10,
+6,setA-02,1.0000,0.5486,468.9,Optimal,0,0.8,10,
+6,setA-03,1.0000,0.9435,70.9,Optimal,0,1.0,10,
+6,setA-04,0.6918,0.5467,1830.4,Not Optimal,0.3188,0.0,10,
+6,setA-05,0.3333,0.1155,1484.8,Optimal 6/10,0.1278,0.6,10,HiGHS exceeded time limit by >2%
+6,setA-06,1.0000,1.0000,2031.8,Not Optimal,1.0000,0.0,1,
+6,setA-07,0.9080,0.9080,2202.5,Not Optimal,1.0000,0.0,1,
+6,setA-08,1.0000,0.5832,2037.2,Not Optimal,0.4531,0.0,1,
+6,setA-09,0.6111,0.6111,>2700,Not Optimal,1.0000,,1,hard stop
+6,setA-10,1.0000,1.0000,,Not Optimal,1.0000,,0,started not completed
+6,setA-11,1.0000,1.0000,,Not Optimal,1.0000,,0,started not completed
+6,setA-12,1.0001,1.0001,,Not Optimal,1.0000,,0,started not completed
+6,setA-13,1.0000,1.0000,,Not Optimal,1.0000,,0,not built
+6,setA-14,1.0000,1.0000,,Not Optimal,1.0000,,0,not built
+6,setA-15,1.0000,1.0000,,Not Optimal,1.0000,,0,not built
+6,setA-16,0.9672,0.9672,,Not Optimal,1.0000,,0,not built
+6,setA-17,1.0001,1.0001,,Not Optimal,1.0000,,0,not built
+6,setA-18,0.6334,0.6334,,Not Optimal,1.0000,,0,not built
+6,setA-19,1.0000,1.0000,,Not Optimal,1.0000,,0,not built
+6,setA-20,1.0000,1.0000,,Not Optimal,1.0000,,0,not built
+9,setA-01,1.0000,0.9294,125.0,Optimal,0,1.0,10,
+9,setA-02,1.0981,0.9031,192.7,Optimal,0,1.0,10,
+9,setA-03,1.0000,0.9435,1810.5,Optimal 7/10,0.0841,0.7,10,
+9,setA-04,1.0000,1.0000,>4500,Not Optimal,1.0000,,1,hard stop
+9,setA-05,1.0000,1.0000,>4500,Not Optimal,1.0000,,1,hard stop
+9,setA-06,1.0000,1.0000,,Not Optimal,1.0000,,0,started not completed
+9,setA-07,1.0000,1.0000,,Not Optimal,1.0000,,0,started not completed
+9,setA-08,1.0000,1.0000,>4500,Not Optimal,1.0000,,1,hard stop
+9,setA-09,1.0000,1.0000,>4500,Not Optimal,1.0000,,1,hard stop
+9,setA-10,1.0000,1.0000,,Not Optimal,1.0000,,0,not built
+9,setA-11,1.0000,1.0000,,Not Optimal,1.0000,,0,not built
+9,setA-12,1.0001,1.0001,,Not Optimal,1.0000,,0,not built
+9,setA-13,1.0000,1.0000,,Not Optimal,1.0000,,0,not built
+9,setA-14,1.0000,1.0000,,Not Optimal,1.0000,,0,not built
+9,setA-15,1.0000,1.0000,,Not Optimal,1.0000,,0,not built
+9,setA-16,1.0000,1.0000,,Not Optimal,1.0000,,0,not built
+9,setA-17,1.0001,1.0001,,Not Optimal,1.0000,,0,not built
+9,setA-18,1.0000,1.0000,,Not Optimal,1.0000,,0,not built
+9,setA-19,1.0000,1.0000,,Not Optimal,1.0000,,0,not built
+9,setA-20,1.0000,1.0000,,Not Optimal,1.0000,,0,not built

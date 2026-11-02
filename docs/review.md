@@ -15,8 +15,6 @@ Review ngày 21/10/2026. Đối chiếu bản phân tích ban đầu (README.md 
 | 2.5 Budget nhỏ (κ = 1) | Phân tích trong báo cáo; chưa cài ràng buộc `z_d` | `docs/PHAN_TICH_KET_QUA.md` mục 4.5 |
 | 2.6 Các điểm nhỏ | Cài Julia bằng juliaup; Step 9 ghi chú lỗi chép; 10 lần chạy với seed khác | `docs/CAI_DAT_VA_CHAY.md` |
 | **Mới:** HiGHS chạy quá time limit với mô hình lớn hơn khoảng 1.5 triệu biến | Thêm chốt chặn cứng `HARD_LIMIT`; bảng đánh dấu `*`; ghi trạng thái "Killed" | `scripts/run.sh`, `src/make_tables.jl` |
-| **Mới (24/10):** so sánh độ dài đường đi bằng `==` làm mất luồng ở instance có trọng số thực (08, 12, 14; 05 không bị) | Sửa bằng sai số tương đối 1e-9; MLU không waypoint của setA-12 sửa thành 1.0001; setA-08 phải chạy lại | `src/data.jl`, `docs/PHAN_TICH_KET_QUA.md` mục 0 |
-| **Mới (24/10):** chu trình rời (mục 2.3b) | Đã kiểm tra nghiệm Step 9 của 01–03: 01 và 02 có chu trình rời; sau khi bỏ, `dist` thật (0, 0, 8) ≤ κ và MLU không đổi, nghiệm hợp lệ | `src/verify_solutions.jl` |
 | **Mới:** chạy trên máy khác | Dockerfile, script lệnh chung, cấu hình bằng biến môi trường, tự chạy tiếp khi bị ngắt | `Dockerfile`, `scripts/run.sh` |
 
 ## Tóm tắt
@@ -54,7 +52,7 @@ Những điểm chung của cả 20 instance:
 - Mọi metric > 0, nên thứ tự topo theo `dist` giảm dần trong README mục 6.3 là đúng.
 - Mỗi cặp `(s,t)` chỉ có một demand.
 - **Các instance gắn cờ `"multigraph": true` (05, 06, 08, 10, 12, 13, 14, 16, 17, 19) thực ra không có cung song song nào.** Chỉ cần notebook multigraph vì cờ này, còn về toán thì xử lý như đồ thị đơn.
-- **Đường ngắn nhất gần như luôn duy nhất**: ở mọi instance, không quá khoảng 1% cặp `(u,v)` có nhiều hơn một đường ngắn nhất (kiểm tra lại 24/10; nhiều nhất là setA-01 với 4/380 cặp). Vì vậy `r` gần như luôn bằng 0 hoặc 1, và ECMP hầu như không xảy ra trên SetA.
+- **Đường ngắn nhất gần như luôn duy nhất**: ở mọi instance, chưa tới 0.3% cặp `(u,v)` có nhiều hơn một đường ngắn nhất. Vì vậy `r` gần như luôn bằng 0 hoặc 1, và ECMP hầu như không xảy ra trên SetA.
 
 ---
 

@@ -1,0 +1,14 @@
+action_id: trunk-single-player-auto-on-upgrade
+date: 2026-10-21 03:19:15
+run: trunk on-upgrade --single-player-only -n --no-progress --allow-daemon-start=false --print-summary --scope=check,plugins,runtimes,tools
+run_from: ""
+trigger: schedule 24h+5m
+result:
+  exit_code: 0
+  out: "\x1b[1m\x1b[90m\n 3 actions were disabled\n\n\x1b[0m\x1b[90m  trunk-announce \n\x1b[0m\x1b[90m  trunk-check-pre-push \n\x1b[0m\x1b[90m  trunk-fmt-pre-commit \n\x1b[0m\n\n\x1b[92mAlready up to date\n\x1b[0m"
+  err: ""
+timestamp: 1792552755
+full_timestamp:
+  nanos: 55407000
+  seconds: 1792552755
+trunk_version: 1.25.0

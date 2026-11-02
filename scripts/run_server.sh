@@ -14,8 +14,7 @@
 #
 # Kết quả nằm trong results/server/:
 #   step6.csv, step9.csv, logs/, env_info.txt (thông tin máy cho báo cáo)
-# và bảng LaTeX results/server/table_step6.tex, table_step9.tex
-# (không ghi đè bảng của báo cáo trong report/, vốn sinh từ results/)
+# và bảng LaTeX report/table_step6.tex, report/table_step9.tex
 #
 # Chạy lại đúng lệnh này nếu bị ngắt: instance đã xong sẽ được bỏ qua.
 # =====================================================================
@@ -26,8 +25,8 @@ cd "$ROOT"
 # ---------------- Cấu hình (đổi bằng biến môi trường khi gọi) ----------------
 export RESULTS_DIR="${RESULTS_DIR:-results/server}"   # thư mục kết quả riêng cho server
 USE_DOCKER="${USE_DOCKER:-1}"                         # 1 = chạy bằng Docker (mặc định), 0 = Julia trên máy
-DOCKER="${DOCKER:-docker}"                            # "sudo docker" nếu user chưa thuộc nhóm docker
-INSTANCES="${INSTANCES:-all}"                         # ví dụ: INSTANCES="1 2 3 4 5"
+# Thứ tự mặc định: từ instance lớn đến bé (theo số biến |D|·n²). Ví dụ khác: INSTANCES="1 2 3 4 5"
+INSTANCES="${INSTANCES:-20 19 16 18 17 13 15 14 10 12 11 7 6 9 8 5 4 3 2 1}"
 # Step 6: thêm ràng buộc "không đi vòng" (không đổi nghiệm tối ưu, nhanh hơn rất nhiều)
 NO_LOOPS_STEP6="${NO_LOOPS_STEP6:-1}"
 # Step 9: mặc định giữ đúng mô hình của đề (đi vòng có thể cần khi có budget)
@@ -35,12 +34,10 @@ NO_LOOPS_STEP9="${NO_LOOPS_STEP9:-0}"
 # Chốt chặn cứng = time limit + 15 phút (HiGHS đôi khi không tự dừng đúng giờ với mô hình lớn)
 HARD6="${HARD6:-2700}"     # Step 6: 1800 s + 900 s
 HARD9="${HARD9:-4500}"     # Step 9: 3600 s + 900 s
-# MAX_VARS: nếu không đặt, tự tính theo RAM trống (khoảng 1.5 GB cho mỗi triệu biến, chừa 2 GB)
-if [[ -z "${MAX_VARS:-}" ]]; then
-    avail_kb=$(awk '/MemAvailable/ {print $2}' /proc/meminfo)
-    MAX_VARS=$(( (avail_kb / 1024 / 1024 - 2) * 1000000 * 2 / 3 ))
-    (( MAX_VARS < 1000000 )) && MAX_VARS=1000000
-fi
+# MAX_VARS: mặc định 5 triệu biến như scripts/run.sh. Không tự tính theo RAM nữa: trên máy 62 GB con số tự tính
+# (~37 triệu) cho dựng các mô hình 13–24 triệu biến vốn không giải được (mất hàng giờ), và setA-14/15
+# (37.35 triệu) nằm sát ngưỡng nên dễ hết RAM. Muốn thử mô hình lớn hơn thì đặt MAX_VARS=... khi gọi.
+MAX_VARS="${MAX_VARS:-5000000}"
 export MAX_VARS
 
 log() { echo "[$(date '+%F %T')] $*"; }
@@ -49,12 +46,11 @@ log() { echo "[$(date '+%F %T')] $*"; }
 mkdir -p "$RESULTS_DIR/logs"
 if [[ "$USE_DOCKER" == "1" ]]; then
     command -v docker >/dev/null || { log "LỖI: server chưa có Docker"; exit 1; }
-    $DOCKER info >/dev/null 2>&1 || { log "LỖI: không dùng được Docker (permission denied?). Thử: DOCKER=\"sudo docker\" $0, hoặc xem docs/CAI_DAT_VA_CHAY.md mục 10"; exit 1; }
     # Luôn build lại để image khớp code hiện tại (có cache: lần đầu 10-20 phút, các lần sau vài giây)
     log "build Docker image orange-tasr"
-    $DOCKER build -t orange-tasr . 2>&1 | tail -3
+    docker build -t orange-tasr . 2>&1 | tail -3
     run() {   # chạy trong container; truyền mọi biến cấu hình vào; kết quả ghi ra thư mục thật
-        $DOCKER run --rm --user "$(id -u):$(id -g)" \
+        docker run --rm --user "$(id -u):$(id -g)" \
             -v "$ROOT/results:/app/results" -v "$ROOT/report:/app/report" \
             -e RESULTS_DIR -e MAX_VARS -e NO_LOOPS -e HARD_LIMIT -e TIME_LIMIT -e MAX_RUNS -e FAST \
             orange-tasr "$@"
@@ -82,7 +78,7 @@ log "Step 9 bắt đầu"
 NO_LOOPS=$NO_LOOPS_STEP9 HARD_LIMIT=$HARD9 run step9 $INSTANCES
 log "Step 9 xong"
 
-# ---------------- 3. Bảng LaTeX (ghi vào $RESULTS_DIR) + tóm tắt ----------------
+# ---------------- 3. Bảng cho báo cáo + tóm tắt ----------------
 run tables
 RESULTS_DIR="$RESULTS_DIR" run status
-log "HOÀN TẤT. Kết quả: $RESULTS_DIR/step6.csv, $RESULTS_DIR/step9.csv; bảng: $RESULTS_DIR/table_step*.tex"
+log "HOÀN TẤT. Kết quả: $RESULTS_DIR/step6.csv, $RESULTS_DIR/step9.csv; bảng: report/table_step*.tex"

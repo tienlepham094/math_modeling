@@ -1,0 +1,21 @@
+step6 seed0: 20 OK, 0 lỗi
+step6 seed1: 20 OK, 0 lỗi
+step6 seed2: 20 OK, 0 lỗi
+step6 seed3: 20 OK, 0 lỗi
+step6 seed4: 20 OK, 0 lỗi
+step6 seed5: 20 OK, 0 lỗi
+step6 seed6: 20 OK, 0 lỗi
+step6 seed7: 20 OK, 0 lỗi
+step6 seed8: 20 OK, 0 lỗi
+step6 seed9: 20 OK, 0 lỗi
+step9 seed0: 20 OK, 0 lỗi
+step9 seed1: 20 OK, 0 lỗi
+step9 seed2: 20 OK, 0 lỗi
+step9 seed3: 20 OK, 0 lỗi
+step9 seed4: 20 OK, 0 lỗi
+step9 seed5: 20 OK, 0 lỗi
+step9 seed6: 20 OK, 0 lỗi
+step9 seed7: 20 OK, 0 lỗi
+step9 seed8: 20 OK, 0 lỗi
+step9 seed9: 20 OK, 0 lỗi
+Tổng: 400 OK, 0 lỗi

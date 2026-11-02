@@ -1,0 +1,385 @@
+\documentclass[conference]{IEEEtran}
+\usepackage[utf8]{inputenc}
+\usepackage[T5,T1]{fontenc}
+\usepackage{amsmath,amssymb}
+\usepackage{booktabs}
+\usepackage{cite}
+\usepackage{url}
+\usepackage[hidelinks]{hyperref}
+
+\newcommand{\MLU}{\mathrm{MLU}}
+\newcommand{\Opt}{Opt.}
+\newcommand{\NOpt}{Not Opt.}
+
+\begin{document}
+
+\title{Exact MILP and Column Generation for the\\ T-Adaptive Segment Routing Problem: Implementation and Computational Study on the EURO/ROADEF 2026 SetA Benchmark}
+
+\author{\IEEEauthorblockN{{\fontencoding{T5}\selectfont Hoàng Tuấn Tài (20261083M) \qquad Lê Phạm Thuỷ Tiên (20261075M)}}
+\IEEEauthorblockA{School of Information and Communication Technology\\
+Hanoi University of Science and Technology\\ Hanoi, Vietnam}}
+
+\maketitle
+
+\begin{abstract}
+Segment Routing (SR) lets an operator steer traffic away from congested links by inserting a few waypoints into the packet header, while traffic between consecutive waypoints follows the usual shortest paths with Equal-Cost Multi-Path (ECMP) splitting. The T-Adaptive Segment Routing (T-ASR) problem, posed by Orange for the EURO/ROADEF Challenge 2026, asks for segment paths over several time periods in which some links are taken down for maintenance, under a limit on the number of segment changes between consecutive periods. We study the Maximum Link Utilization (MLU) version on the 20 SetA instances with two methods. Method~1 is the compact mixed-integer linear program (MILP) of the challenge, solved with HiGHS; its number of binary variables grows as $|D|\cdot|V|^2$ (up to $9.6\cdot10^8$), so it proves optimality on only four instances for one period and three for two periods. Method~2 reformulates the problem over segment paths and solves it by column generation: the pricing problem is a shortest path with at most $maxSeg$ arcs, every iteration yields a certified Lagrangian lower bound, two-period columns are pairs of paths whose budget cost is exact, and integer solutions come from MILPs over the generated paths followed by a load-driven neighbourhood search. Method~2 solves all 20 instances within the time limits of the project. On the two-period problem, its best MLU over ten runs equals the best value reported by the 53 teams of the challenge sprint on all 20 instances (in all ten runs on 19 of them), and optimality is proved on 13 instances in every run and on one more in nine runs out of ten (12 instances for one period). On the small instances that both methods can solve, run on the same machine, Method~2 returns the same values as the compact MILP in at most 2.3\,s on average, against 7 to 2102\,s. Every solution is checked by an independent re-implementation of the routing rules. We also show that comparing path lengths with exact floating-point equality silently corrupts the ECMP coefficients on three instances.
+\end{abstract}
+
+\begin{IEEEkeywords}
+Segment routing, traffic engineering, mixed-integer linear programming, column generation, maintenance planning, ECMP.
+\end{IEEEkeywords}
+
+\section{Introduction}
+
+Orange operates national and international IP/MPLS backbones with thousands of routers and links and tens of thousands of traffic demands. Traffic Engineering (TE) aims to use this infrastructure efficiently, mainly to avoid congestion and to preserve the quality of service. A standard design rule requires the network to remain fully functional when any single link or node is unavailable, including when the operator takes it down on purpose for maintenance~\cite{subject}.
+
+In classical IP routing, packets follow the shortest paths with respect to administrative link weights. This is simple to operate, but many flows tend to share the same few links, and rerouting them requires a new weight setting, which is itself a hard optimization problem~\cite{fortz2000}. Segment Routing (SR)~\cite{rfc8402} removes this rigidity: the ingress router writes a short list of waypoints into the packet header, and the packet travels along shortest paths from waypoint to waypoint. Choosing waypoints is therefore enough to move traffic off congested links without touching the weights.
+
+Maintenance makes the problem dynamic. When a link is taken down, shortest paths change and congestion may appear elsewhere, so the waypoints should be adapted. Each change of a segment path is, however, an operational action with a cost and a risk, so the number of changes between two consecutive periods is limited by a budget. The T-Adaptive Segment Routing (T-ASR) problem~\cite{subject,benhamiche2026} captures this trade-off. It generalizes the single-period segment routing problem and is NP-hard, inapproximable and parameterized intractable even on very restricted topologies~\cite{benhamiche2026,bazgan2025}.
+
+This paper follows the steps of the course project and goes one step further. Our contributions are:
+\begin{itemize}
+\item an implementation of the MILP formulation of the challenge for one period and for two periods with the linearized budget constraint (Method~1);
+\item a careful computation of the ECMP split coefficients, a comparison with the path-counting rule of the course material, and an analysis of a floating-point pitfall that silently corrupts the coefficients;
+\item a path formulation solved by column generation (Method~2), with certified lower bounds, exact handling of the budget, and integer solutions for all 20 instances;
+\item a computational study on SetA with averages over ten seeded runs, an independent check of every solution, and a comparison with the best values of the challenge.
+\end{itemize}
+Section~\ref{sec:related} reviews related work, Section~\ref{sec:problem} defines the problem, Section~\ref{sec:milp} gives the MILP, Section~\ref{sec:r} explains the split coefficients, Section~\ref{sec:cg} presents the column generation, Section~\ref{sec:exp} reports the experiments and Section~\ref{sec:concl} concludes.
+
+\section{Related Work}\label{sec:related}
+
+Most optimization work on SR considers a single network state. Bhatia et al.~\cite{bhatia2015} formulate two-segment routing as a linear program. Hartert et al.~\cite{hartert2015} show that SR reduces congestion and propose a hybrid constraint-programming approach. Jadin et al.~\cite{cg4sr} handle an arbitrary number of segments with column generation (CG4SR), and Li and Yeung~\cite{li2020} give a MILP formulation for SR-TE. Failure resilience is addressed by Sch\"uller et al.~\cite{schuller2021}, whose MILP minimizes the MLU over failure scenarios, and by the three-segment heuristic of Pereira et al.~\cite{pereira2020}. Callebaut et al.~\cite{callebaut2023} remove dominated segment paths, in particular paths with loops, which shrinks single-period models considerably.
+
+The multi-period problem with a reconfiguration budget was introduced with the challenge. Benhamiche et al.~\cite{benhamiche2026} formulate T-ASR with a lexicographic objective on the sorted vector of link loads and solve it with a sequence of MILPs (ALEXA and STELA) on instances with up to 50 nodes. They also show that, with a budget, an optimal solution may need a segment path with a loop, so the preprocessing of~\cite{callebaut2023} is no longer valid. Jaumard et al.~\cite{jaumard2026} solve the MLU version period by period with column generation on a segment graph and report LP--ILP gaps on SetA of 3.12\% on average at $t=0$ and 13.05\% at $t=1$. Our Method~2 uses the same segment-graph pricing as~\cite{cg4sr,jaumard2026} but optimizes both periods jointly, with columns that are pairs of paths so that the budget is counted exactly.
+
+\section{Problem Definition}\label{sec:problem}
+
+\emph{Network.} A network is a directed graph $G=(V,A)$ with $n=|V|$ nodes, a weight $\omega(a)>0$ used for shortest paths, and a capacity $c(a)$ for every arc $a\in A$.
+
+\emph{Forwarding graph and ECMP.} The forwarding graph $FG(u,v)$ contains every arc that lies on a shortest $u$--$v$ path. When $FG(u,v)$ is not a single path, ECMP splits the flow entering a node evenly among the outgoing arcs of that node in $FG(u,v)$. The split coefficient $r(u,v,a,t)$ is the fraction of one unit of flow sent from $u$ to $v$ that crosses arc $a$ in the network of period $t$.
+
+\emph{Segment paths.} A segment path $\langle s,w_1,\dots,w_\ell,t\rangle$ from source $s$ to target $t$ visits the waypoints $w_1,\dots,w_\ell$ in this order; each pair of consecutive nodes is a segment, routed on its forwarding graph. A path has at most $maxSeg$ segments, including the first and the last one; $\ell=0$ means plain shortest-path routing.
+
+\emph{Demands and periods.} A demand $d=(s_d,t_d)$ has a volume $\nu(d,t)$ in each period $t\in T=\{0,\dots,h-1\}$. Period 0 is the nominal state; in each $t\in T^*=T\setminus\{0\}$, the arcs $q(t)\subseteq A$ are down and the network is $G_t=(V,A_t)$ with $A_t=A\setminus q(t)$; we set $A_0=A$.
+
+\emph{Budget.} Let $\delta(p,ij)=1$ if segment path $p$ contains segment $(i,j)$. The distance between the routing schemes $P$ and $P'$ is $\mathrm{dist}(P,P')=\sum_d\sum_{i\neq j}|\delta(p_d,ij)-\delta(p'_d,ij)|$, and $\mathrm{dist}(P^{t-1},P^t)\le\kappa(t)$ is required for every $t\in T^*$. For example, replacing $\langle s,w,t\rangle$ by $\langle s,t\rangle$ costs 3.
+
+\emph{Objective.} The load of arc $a$ in period $t$ is $\lambda(a,t)=\frac{1}{c(a)}\sum_d\sum_{i,j} r(i,j,a,t)\,\nu(d,t)\,\delta(p_d,ij)$. The challenge minimizes the vector of all loads in decreasing lexicographic order. As in~\cite{jaumard2026}, we minimize its first component, the MLU $\max_{t,a}\lambda(a,t)$; every lexicographically optimal solution is MLU-optimal, but not conversely~\cite{benhamiche2026}.
+
+\section{MILP Formulation (Method 1)}\label{sec:milp}
+
+\subsection{Data}
+Table~\ref{tab:data} lists the parameters and the JSON fields they are read from. JSON identifiers are mapped to consecutive indices, since they are not always listed in order (setA-14 lists its nodes from 249 down to 0).
+
+\begin{table}[t]
+\centering\footnotesize
+\caption{Parameters and their source in the instance files}\label{tab:data}
+\begin{tabular}{@{}lll@{}}
+\toprule
+Symbol & Meaning & Source\\
+\midrule
+$V$, $A$ & nodes, arcs & net: nodes, links\\
+$\omega(a)$, $c(a)$ & weight, capacity & net: metric, capacity\\
+$s_d$, $t_d$ & source, target of $d$ & tm: s, t\\
+$\nu(d,t)$ & volume of $d$ in period $t$ & tm: v[$t$]\\
+$maxSeg$ & max.\ segments per path & scenario: max\_segments\\
+$q(t)$ & arcs down in period $t$ & scenario: interventions\\
+$\kappa(t)$ & budget of period $t$ & scenario: budget\\
+$r(i,j,a,t)$ & split coefficients & computed (Section~\ref{sec:r})\\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Variables}
+A segment path of $d$ is a path from $s_d$ to $t_d$ in the complete digraph whose arcs are the node pairs $(i,j)$. The binary variable $x^{dt}_{ij}$ equals 1 if the segment path of demand $d$ in period $t$ contains segment $(i,j)$. Variables are created only for pairs with $j$ reachable from $i$ in $G_t$; the other pairs cannot carry flow. $U\ge0$ is the MLU and, in the multi-period model, $y^{dt}_{ij}\ge0$ linearizes the budget.
+
+\subsection{Model}
+\begin{align}
+\min\ & U\nonumber\\
+\text{s.t. } & \sum_{j\neq i}x^{dt}_{ij}-\sum_{j\neq i}x^{dt}_{ji}=
+\begin{cases}1& i=s_d\\-1& i=t_d\\0&\text{otherwise}\end{cases} && \forall d,i,t \label{c:flow}\\
+& \sum_{i\neq j}x^{dt}_{ij}\le maxSeg && \forall d,t \label{c:seg}\\
+& \sum_d\sum_{i\neq j} r(i,j,a,t)\,\nu(d,t)\,x^{dt}_{ij}\le U\,c(a) && \forall t,\ a\in A_t \label{c:load}\\
+& \sum_d\sum_{i\neq j}\bigl|x^{dt}_{ij}-x^{d,t-1}_{ij}\bigr|\le\kappa(t) && \forall t\in T^* \label{c:budget}\\
+& x^{dt}_{ij}\in\{0,1\}.\nonumber
+\end{align}
+Constraint~\eqref{c:flow} is a flow conservation on the complete digraph of node pairs: for demand $d$ in period $t$, one more selected segment leaves $s_d$ than enters it, one more enters $t_d$ than leaves it, and every other node (a waypoint, possibly visited several times) has as many selected segments entering as leaving; the selected segments therefore contain a walk from $s_d$ to $t_d$, which is the segment path (see Section~\ref{sec:props} for the cycles it may also contain). Constraint~\eqref{c:seg} bounds the number of segments of each path, including the first one (from the source) and the last one (to the target), which models the limited header size. Constraint~\eqref{c:load} computes the traffic on each available arc $a$ of period $t$: every selected segment $(i,j)$ of every demand sends the fraction $r(i,j,a,t)$ of its volume $\nu(d,t)$ through $a$; dividing by $c(a)$ gives the load $\lambda(a,t)$, and the constraint makes $U$ an upper bound on all loads of all periods, so that minimizing $U$ minimizes the MLU. Constraint~\eqref{c:budget} counts, for every demand and node pair, whether the segment is used in one period and not in the other, which is exactly $\mathrm{dist}(P^{t-1},P^t)$, and bounds it by $\kappa(t)$. Since $r$ and $\nu$ are data, \eqref{c:load} is linear. The absolute value in~\eqref{c:budget} is linearized exactly by
+\begin{align}
+& y^{dt}_{ij}\ge x^{dt}_{ij}-x^{d,t-1}_{ij},\qquad y^{dt}_{ij}\ge x^{d,t-1}_{ij}-x^{dt}_{ij},\nonumber\\
+& \textstyle\sum_d\sum_{i\neq j}y^{dt}_{ij}\le\kappa(t),\label{c:lin}
+\end{align}
+with a missing variable (segment unreachable in one of the two periods) taken as 0. The single-period model (Step~5 of the project) is \eqref{c:flow}--\eqref{c:load} for $t=0$; the two-period model (Step~8) adds the second period and~\eqref{c:lin}.
+
+\subsection{Properties}\label{sec:props}
+\emph{Cost of a change.} If the path of a demand changes, $x^t-x^{t-1}$ is a non-zero circulation on a digraph without self-loops, so it has at least two non-zero entries. Hence every rerouted demand costs at least 2, and $\kappa(t)=1$ (setA-05, 10, 17) forbids any change.
+
+\emph{Disjoint cycles.} Constraint~\eqref{c:flow} does not forbid $x^{dt}$ from containing, in addition to the $s_d$--$t_d$ path, a cycle that does not touch it, e.g.\ $x^{dt}_{ij}=x^{dt}_{ji}=1$. Such a cycle only adds load, so it never improves the optimal value with one period. With a budget, however, it can make the left-hand side of~\eqref{c:budget} smaller than the true $\mathrm{dist}(P^{t-1},P^t)$. We therefore read every solution as an Euler walk from $s_d$ (which also handles paths that visit a node twice), discard the remaining cycles, and recompute the loads and $\mathrm{dist}$ from the paths.
+
+\emph{A valid restriction for one period.} Removing a loop from a segment path never increases a load ($r\ge0$) and never adds a segment. With one period, one may therefore add $\sum_j x^{d0}_{ji}\le1$ for $i\neq s_d$ and forbid segments entering $s_d$ or leaving $t_d$ without losing optimality. This restriction is not valid with a budget, since a loop may then be necessary~\cite{benhamiche2026}.
+
+\emph{Size.} Each period has about $|D|\,n(n-1)$ binary variables and~\eqref{c:load} about $|D|\cdot\mathrm{nnz}(r)$ non-zeros, where $\mathrm{nnz}(r)$ is the number of (segment, arc) pairs with $r>0$; the two-period model has about three times as many variables ($x^0$, $x^1$, $y$).
+
+\section{Computing the Split Coefficients}\label{sec:r}
+
+The coefficients $r(i,j,a,t)$ depend only on $G_t$ and $\omega$, and are needed for every node pair since any node may be a waypoint. For each period we run Dijkstra's algorithm from every node to obtain the distances $d_{ij}$. Arc $a=(u,v)$ belongs to $FG(i,j)$ if and only if $d_{iu}+\omega(a)+d_{vj}=d_{ij}$. For each target $j$, the nodes are processed by decreasing $d_{\cdot j}$, a topological order of every $FG(\cdot,j)$ since $\omega>0$. One unit of flow is placed at $i$, and each node splits the flow it receives evenly among its outgoing arcs $(u,v)$ with $d_{uj}=\omega(u,v)+d_{vj}$. The flow on arc $a$ is $r(i,j,a,t)$. The coefficients are stored sparsely, as lists of (arc, value) pairs per node pair.
+
+\emph{ECMP versus path counting.} The course material suggests $r_{ija}=\sigma_{iu}\sigma_{vj}/\sigma_{ij}$, where $\sigma$ counts shortest paths. This splits the flow evenly over paths, whereas ECMP splits it evenly at each node, and the two differ when shortest paths branch and merge again. On the toy instance of~\cite{subject}, for demand $(v_0,v_5)$, ECMP gives $r(a_{1,3})=r(a_{1,4})=0.5$ and $r(a_{3,5})=0.75$, exactly Table~2 of~\cite{subject}, while path counting gives $1/3$, $2/3$ and $2/3$. We use ECMP. On SetA both rules give the same coefficients in both periods, except for one node pair in setA-18 and one in setA-20, neither of which is a demand: at most 1.05\% of the node pairs of an instance have several shortest paths.
+
+\emph{Floating-point equality.} In the four instances with non-integer weights (05, 08, 12, 14; e.g.\ $\omega=0.0037$), the same path length summed in two different orders may differ in the last bit. With an exact test, an arc of $FG(i,j)$ is then missed and part of the unit of flow sent from $i$ never reaches $j$, without any error being raised. At $t=0$ this happens to 12\,560 of the 22\,350 node pairs of setA-08, 25\,144 of 39\,800 in setA-12 and 41\,280 of 62\,250 in setA-14 (12\,577, 25\,116 and 41\,280 at $t=1$), and to none in setA-05. We compare lengths with a relative tolerance of $10^{-9}$. Over all instances and both periods, equal lengths differ by at most $4.4\cdot10^{-16}$ in relative terms and different lengths by at least $2.8\cdot10^{-6}$, so the tolerance is safe. With the tolerance, the unit of flow reaches $j$ for every pair, and an independent implementation in Python gives identical coefficients on setA-08, 12 and 14.
+
+\emph{Validation.} For every node pair of every instance and period we checked that the coefficients form a unit flow from $i$ to $j$, use only arcs of $G_t$ and only arcs of $FG(i,j)$. On the toy instance, the model returns the optimal MLU 0.375 for $t=0$ (0.4375 without waypoints, as in Fig.~4 of~\cite{subject}) and 0.375 for the two periods. We confirmed both values by enumerating all 206 segment paths with at most $maxSeg=4$ segments per demand and period.
+
+\section{Column Generation on Segment Paths (Method 2)}\label{sec:cg}
+
+The compact model has $|D|\,n(n-1)$ binary variables per period, although a solution uses one segment path per demand. Method~2 therefore takes whole paths as variables and generates them only when they can improve the current solution~\cite{cg4sr,jaumard2026}.
+
+\subsection{Path formulation}
+Let $\mathcal P_d$ be the set of segment paths of $d$ with at most $maxSeg$ segments in which no segment is repeated (as in~\eqref{c:flow}--\eqref{c:budget}, where $x$ is binary), and let $L_t(p,a)=\sum_{(i,j)\in p}r(i,j,a,t)$ be the load that one unit of flow on $p$ puts on arc $a$. For one period, with $\lambda_{dp}=1$ if $d$ uses $p$:
+\begin{align}
+\min\ & U\nonumber\\
+\text{s.t. } & \textstyle\sum_{p\in\mathcal P_d}\lambda_{dp}=1 \qquad \forall d \label{m:conv}\\
+& \textstyle\sum_d\sum_{p\in\mathcal P_d}\nu(d,0)L_0(p,a)\lambda_{dp}\le U c(a)\quad \forall a \label{m:load}
+\end{align}
+with $\lambda\in\{0,1\}$. Setting $\lambda_{dp}=1$ amounts to setting $x^{d0}_{ij}=1$ on the segments of $p$, so every solution of~\eqref{m:conv}--\eqref{m:load} is a solution of~\eqref{c:flow}--\eqref{c:load} with the same $U$; conversely, the cycles that~\eqref{c:flow} allows only add load. The two formulations therefore have the same optimal value. For two periods, a column is a pair $(p_0,p_1)$ with budget cost $\Delta(p_0,p_1)=|S(p_0)\,\triangle\,S(p_1)|$, where $S(p)$ is the segment set of $p$, and the budget becomes
+\begin{equation}
+\textstyle\sum_d\sum_{(p_0,p_1)}\Delta(p_0,p_1)\,\lambda_{d,(p_0,p_1)}\le\kappa(1).\label{m:budget}
+\end{equation}
+For integer $\lambda$ this is exactly $\mathrm{dist}(P^0,P^1)\le\kappa(1)$: no auxiliary variable is needed, and disjoint cycles cannot be used to undercount the distance (Section~\ref{sec:props}).
+
+\subsection{Column generation}
+The restricted master problem (RMP) is the LP relaxation of~\eqref{m:conv}--\eqref{m:budget} over a subset of columns, initially the no-waypoint path in every period ($\Delta=0$, always feasible). It is solved by the dual simplex method of HiGHS through its C interface, which keeps the basis when columns are appended. Let $\mu_d$, $w_{a,t}\ge0$ and $\rho\ge0$ be the dual variables of~\eqref{m:conv}, \eqref{m:load} (for each period) and~\eqref{m:budget}. The reduced cost of a one-period column is $\nu(d)\sum_a L(p,a)\,w_a-\mu_d$. Because $L$ is a sum over segments, this equals $\nu(d)\sum_{(i,j)\in p}W(i,j)-\mu_d$ with $W(i,j)=\sum_a r(i,j,a)\,w_a\ge0$. The pricing problem is thus a shortest walk from $s_d$ to $t_d$ with at most $maxSeg$ arcs in the complete digraph with arc lengths $W$, solved by the Bellman--Ford recursion
+\[
+f_k(v)=\min\Bigl\{f_{k-1}(v),\ \min_{u}\bigl(f_{k-1}(u)+W(u,v)\bigr)\Bigr\}
+\]
+for $k=1,\dots,maxSeg$, in $O(maxSeg\cdot n^2)$ time per source; one recursion serves all demands with the same source. Ties are broken towards fewer segments, and a walk that repeats a segment is never needed since $W\ge0$. For two periods, two candidates are priced for each demand: a path shared by both periods ($\Delta=0$, arc lengths $\nu(d,0)W_0+\nu(d,1)W_1$, one recursion per demand), and the pair of best paths of each period (one recursion per source and period), whose $\Delta$ is computed exactly. Columns with a negative reduced cost are added, and the loop stops when none is left, so that the RMP value is the LP bound over all of $\mathcal P_d$, or when the lower bound below is within $10^{-6}$ of the RMP value, or after 600\,s.
+
+\subsection{Lower bounds}
+\emph{Lagrangian bound.} For any $w\ge0$ with $\sum_a c(a)w_a>0$,
+\begin{equation}
+LB(w)=\frac{\sum_d\nu(d)\min_{p\in\mathcal P_d}\sum_a L(p,a)\,w_a}{\sum_a c(a)\,w_a}\label{m:lb}
+\end{equation}
+is a lower bound on the MLU: if a solution has MLU $U$, then $\sum_a w_a\,\mathrm{load}(a)\le U\sum_a c(a)w_a$, while $\sum_a w_a\,\mathrm{load}(a)=\sum_d\nu(d)\sum_a L(p_d,a)w_a$ is at least the numerator of~\eqref{m:lb}. The minimum is exactly what the pricing computes, so every iteration yields a certified bound, which equals the RMP value at convergence. With two periods, dualizing~\eqref{m:budget} with $\rho$ adds $\rho\,(\Delta-\kappa)$; two paths with different segment sets differ in at least two segments (Section~\ref{sec:props}), and two paths with the same segment set put the same loads, so the minimum over pairs is at least $\min\{C^{\mathrm{sh}}_d,\,C^{\mathrm{sep}}_d+2\rho\}$, with $C^{\mathrm{sh}}_d$ the cost of the best shared path and $C^{\mathrm{sep}}_d$ that of the best pair; the bound is $(\sum_d\min\{C^{\mathrm{sh}}_d,C^{\mathrm{sep}}_d+2\rho\}-\rho\kappa)/\sum_{t,a}c(a)w_{a,t}$.
+
+\emph{Single-demand bound.} The LP lets a demand split over several paths, which is weak when a few demands are large. Demand $d$ alone loads some arc to at least $\min_p\max_a\nu(d,t)L_t(p,a)/c(a)$, and the maximum over $d$ and $t$ is a lower bound on the MLU. It is computed by a bottleneck version of the recursion (maximum instead of sum); taking the maximum over segments of each segment's largest load can only underestimate the load of an arc crossed by two segments, so the computed value is still a valid bound. We report $LB$ as the larger of the two bounds.
+
+\subsection{Integer solutions}
+\emph{MILP over the generated paths.} Each demand may use any path that appears in one of its columns. For one period, the MILP has one binary per (demand, path). For two periods, a demand either keeps one path in both periods ($\Delta=0$) or, if its LP solution uses a column with $\Delta>0$, takes a pair of different paths with coefficient $\Delta$ in the budget row, so the budget is again exact. The constraint $U\ge LB$ is added so that HiGHS stops as soon as it reaches the bound, and the rounded LP solution (largest $\lambda$ per demand, with the budget repaired) is passed as a starting solution. The time limit is 300\,s.
+
+\emph{Neighbourhood search.} Generated columns serve the LP, not necessarily the best integer solution; on the toy instance, the MILP over them reaches only 0.4375. We therefore repeat: find the arcs loaded to at least 99.5\% of the current MLU; for up to 400 demands crossing them, compute new paths by a bottleneck recursion that keeps the loads of all other demands fixed and minimizes the largest relative load on the path (ties broken by the total load), plus paths that avoid every segment crossing these arcs; add them to the path sets and re-solve the MILP, in which only the demands crossing arcs loaded to at least 90\% of the MLU may move (at most 1500, at most 300 of which may use two different paths). After a round without improvement the neighbourhood is widened (97\% and 50\% thresholds, up to 2000 demands). The search stops at the lower bound, after three rounds without improvement, or after 780\,s (one period) or 2400\,s (two periods), so that the total time stays below the limits of the project (1800\,s and 3600\,s). On the toy instance the first round finds $\langle v_0,v_2,v_5\rangle$ and the optimum 0.375.
+
+Method~2 thus combines an exact lower bound with a heuristic upper bound; it is exact when the two meet. We call a run \emph{Optimal} when the gap $1-LB/UB$ is at most $10^{-4}$, the default relative gap of HiGHS used for Method~1. Every solution is re-evaluated from its paths: loads, MLU per period, number of segments, arcs down, and the true $\mathrm{dist}(P^0,P^1)$.
+
+\section{Computational Experiments}\label{sec:exp}
+
+\subsection{Instances}
+All 20 SetA instances have $h=2$ periods, $maxSeg=6$ and exactly one arc down at $t=1$ (Table~\ref{tab:inst}). Every arc has a reverse arc, every source--target pair carries a single demand, and none of the ten instances flagged as multigraphs (05, 06, 08, 10, 12, 13, 14, 16, 17, 19) actually has parallel arcs. Shortest-path routing without waypoints already saturates the most loaded arc in most instances ($\MLU_0\approx1$ in Tables~\ref{tab:step6} and~\ref{tab:step9}).
+
+\begin{table*}[t]
+\centering\footnotesize
+\caption{SetA instances: nodes, arcs, demands, budget at $t=1$ and number of binary variables of the single-period model}\label{tab:inst}
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{@{}rrrrrr@{\qquad}rrrrrr@{\qquad}rrrrrr@{}}
+\toprule
+Inst & $|V|$ & $|A|$ & $|D|$ & $\kappa(1)$ & \#$x$ & Inst & $|V|$ & $|A|$ & $|D|$ & $\kappa(1)$ & \#$x$ & Inst & $|V|$ & $|A|$ & $|D|$ & $\kappa(1)$ & \#$x$\\
+\midrule
+01 & 20 & 80 & 40 & 51 & $1.5\cdot10^4$ & 08 & 150 & 654 & 200 & 13 & $4.5\cdot10^6$ & 15 & 250 & 1250 & 600 & 54 & $3.7\cdot10^7$\\
+02 & 30 & 150 & 45 & 63 & $3.9\cdot10^4$ & 09 & 150 & 750 & 200 & 18 & $4.5\cdot10^6$ & 16 & 250 & 1452 & 4800 & 13 & $3.0\cdot10^8$\\
+03 & 50 & 250 & 20 & 53 & $4.9\cdot10^4$ & 10 & 150 & 966 & 1000 & 1 & $2.2\cdot10^7$ & 17 & 300 & 1270 & 2000 & 1 & $1.8\cdot10^8$\\
+04 & 50 & 250 & 200 & 44 & $4.9\cdot10^5$ & 11 & 200 & 1000 & 400 & 89 & $1.6\cdot10^7$ & 18 & 300 & 1500 & 2000 & 89 & $1.8\cdot10^8$\\
+05 & 100 & 396 & 100 & 1 & $9.9\cdot10^5$ & 12 & 200 & 898 & 400 & 13 & $1.6\cdot10^7$ & 19 & 300 & 1998 & 6000 & 13 & $5.4\cdot10^8$\\
+06 & 100 & 500 & 500 & 13 & $5.0\cdot10^6$ & 13 & 200 & 1000 & 2000 & 12 & $8.0\cdot10^7$ & 20 & 400 & 2000 & 6000 & 90 & $9.6\cdot10^8$\\
+07 & 100 & 500 & 800 & 90 & $7.9\cdot10^6$ & 14 & 250 & 1108 & 600 & 13 & $3.7\cdot10^7$ & & & & & & \\
+\bottomrule
+\end{tabular}
+\end{table*}
+
+\subsection{Environment and protocol}\label{sec:env}
+\emph{Machines.} Two machines were used, and every table states which one. Machine~A (Method~1, Tables~\ref{tab:step6}--\ref{tab:noloop}): an Ubuntu 20.04 container (Linux 6.8) on a dual-socket AMD EPYC 7713 server ($2\times64$ cores, 1.5--3.7\,GHz), limited to 32 logical CPUs and 128\,GB (119\,GiB) of RAM, using 8 HiGHS threads per run and up to about 32 runs at the same time; the machine was oversubscribed and shared, so its times are inflated and noisy. Machine~B (Method~2, Tables~\ref{tab:cg} and~\ref{tab:same}, and one Method~1 run): a Docker container (Linux) on an Intel Xeon server at 2.20\,GHz with 8 cores (16 logical CPUs) and 62.8\,GB of RAM. Both use Julia 1.13.2~\cite{julia}, JuMP 1.32.1~\cite{jump}, Graphs.jl 1.15.0 and HiGHS 1.15.1~\cite{highs} (HiGHS.jl 1.26.1). Objective values and bounds do not depend on the machine; times measured on different machines are not comparable, so the comparison of times in Section~\ref{sec:compare} uses machine~B only.
+
+\emph{Method 1 settings.} The time limit is 1800\,s for one period (Step~6) and 3600\,s for two periods (Step~9). We set \texttt{mip\_heuristic\_effort} to 0.3 instead of the default 0.05, so that HiGHS spends more effort on primal heuristics: in all our runs the branch-and-bound tree has at most one node and, whenever optimality is proved, it is proved at the root, so the slow part is finding an integer solution that reaches the root bound. The no-waypoint routing is given as a starting solution; it is always feasible (it uses no budget), so every run has an upper bound. HiGHS reports Optimal when the relative gap is at most $10^{-4}$ (default \texttt{mip\_rel\_gap}). CPU is the elapsed time of the whole \texttt{optimize!} call, which includes copying the JuMP model into HiGHS; model building is not included. Gap is $1-LB/UB$, with $LB$ the best bound and $UB$ the best solution value. Nodes is the number of branch-and-bound nodes.
+
+\emph{Method 1 runs.} HiGHS is deterministic, so the ten runs required by the project use \texttt{random\_seed} $0,\dots,9$. Models with fewer than $10^6$ variables (Step~6: 01--05; Step~9: 01--03) are run ten times and the tables report averages. Larger models need 35--90 minutes and 5--43\,GB or more of RAM per run (peak resident memory) and are run once. The memory is estimated from the peak measured on the largest model run in each step: 3.7\,GB per million variables in Step~6 (setA-07) and 3.2\,GB in Step~9 (setA-08, 43\,GB). Step~6 on 13--20 and Step~9 on 10--20 would need from about 140\,GB to 9\,TB and are not built. Every run is executed under an operating-system timeout of the time limit plus 900\,s (2700\,s and 4500\,s), because HiGHS only checks its clock between long steps of presolve and of the root LP and can overrun the limit. A run stopped by this timeout did not prove optimality within the time limit; its best solution and bound are lost, so Obj is the MLU of the starting solution and the Gap uses the trivial bound $U\ge0$. On machine~B, Method~1 was additionally run (i)~on Step~9 setA-06, whose run on machine~A did not complete, with the same hard stop of the time limit plus 1800\,s that machine~A used for its largest models, since building and copying them takes 15--20 minutes; and (ii)~ten times on every instance with fewer than $10^6$ variables (eight runs at a time, one process per run, hard stop of the time limit plus 900\,s), for the comparison on the same machine in Section~\ref{sec:compare}.
+
+\emph{Method 2 settings.} Time budgets: 600\,s for column generation, 300\,s for the first MILP and 780\,s (Step~6) or 2400\,s (Step~9) for the neighbourhood search, i.e.\ at most 1680\,s and 3300\,s, below the limits of the project. The column generation is deterministic; the ten runs differ by the \texttt{random\_seed} of HiGHS in the MILPs ($0,\dots,9$). The 400 runs were executed eight at a time with two threads each. CPU is the elapsed time of the solving phase (column generation, MILPs and search), excluding reading the data and computing $r$, the analogue of the \texttt{optimize!} call of Method~1; it includes the compilation of the Julia code for the first instance of a process (a few seconds). Nodes is the total number of branch-and-bound nodes of all MILPs of a run. A first batch used a 600\,s budget for the search in both steps. All runs of the two instances whose search can be long (setA-16 in both steps, setA-19 in Step~9) were repeated with the final budgets, and the tables use these runs; in every other run the search stopped before 600\,s, at the lower bound or after three rounds without improvement, so the larger budget does not change it. Each process used less than 2\,GiB of RAM in the samples taken during the runs.
+
+\emph{Solution check.} Method~1 solutions are read as Euler walks (Section~\ref{sec:props}); for each path we verify that it joins $s_d$ to $t_d$ with at most $maxSeg$ segments, recompute the MLU of each period from the paths and compute the true $\mathrm{dist}(P^0,P^1)$. Method~2 solutions are written in the format of the official checker of the challenge and checked by an independent program written from scratch in Python, which recomputes the shortest paths, the ECMP coefficients and the loads from the JSON files.
+
+\emph{Interpretation of Step 9.} The project text of Step~9 reads ``only time period 0'', which we take to be copied from Step~6: Step~9 solves the two-period model of Step~8.
+
+\begin{table*}[t]
+\centering\footnotesize
+\caption{Method 1, Step 6: period $t=0$ only, time limit 1800\,s, machine A. $\MLU_0$: MLU without waypoints}\label{tab:step6}
+\begin{tabular}{@{}rrrrrrrlrrr@{}}
+\toprule
+Inst & $|V|$ & $|A|$ & $|D|$ & $\MLU_0$ & Obj & CPU (s) & Status & Gap & Nodes & Runs\\
+\midrule
+01 & 20 & 80 & 40 & 1.0000 & 0.9294 & 8.8 & Optimal & 0 & 1.0 & 10\\
+02 & 30 & 150 & 45 & 1.0000 & 0.5486 & 468.9 & Optimal & 0 & 0.8 & 10\\
+03 & 50 & 250 & 20 & 1.0000 & 0.9435 & 70.9 & Optimal & 0 & 1.0 & 10\\
+04 & 50 & 250 & 200 & 0.6918 & 0.5467 & 1830.4 & Not Opt. & 31.88\% & 0.0 & 10\\
+05 & 100 & 396 & 100 & 0.3333 & 0.1155 & 1484.8$^*$ & Opt. 6/10 & 12.78\% & 0.6 & 10\\
+06 & 100 & 500 & 500 & 1.0000 & 1.0000 & 2031.8 & Not Opt. & 100.00\% & 0.0 & 1\\
+07 & 100 & 500 & 800 & 0.9080 & 0.9080 & 2202.5 & Not Opt. & 100.00\% & 0.0 & 1\\
+08 & 150 & 654 & 200 & 1.0000 & 0.5832 & 2037.2 & Not Opt. & 45.31\% & 0.0 & 1\\
+09 & 150 & 750 & 200 & 0.6111 & 0.6111 & $>$2700 & Not Opt.$^\dagger$ & 100\% & -- & 1\\
+10 & 150 & 966 & 1000 & 1.0000 & 1.0000 & -- & Not Opt.$^\ddagger$ & 100\% & -- & 0\\
+11 & 200 & 1000 & 400 & 1.0000 & 1.0000 & -- & Not Opt.$^\ddagger$ & 100\% & -- & 0\\
+12 & 200 & 898 & 400 & 1.0001 & 1.0001 & -- & Not Opt.$^\ddagger$ & 100\% & -- & 0\\
+13 & 200 & 1000 & 2000 & 1.0000 & 1.0000 & -- & Not Opt.$^\S$ & 100\% & -- & 0\\
+14 & 250 & 1108 & 600 & 1.0000 & 1.0000 & -- & Not Opt.$^\S$ & 100\% & -- & 0\\
+15 & 250 & 1250 & 600 & 1.0000 & 1.0000 & -- & Not Opt.$^\S$ & 100\% & -- & 0\\
+16 & 250 & 1452 & 4800 & 0.9672 & 0.9672 & -- & Not Opt.$^\S$ & 100\% & -- & 0\\
+17 & 300 & 1270 & 2000 & 1.0001 & 1.0001 & -- & Not Opt.$^\S$ & 100\% & -- & 0\\
+18 & 300 & 1500 & 2000 & 0.6334 & 0.6334 & -- & Not Opt.$^\S$ & 100\% & -- & 0\\
+19 & 300 & 1998 & 6000 & 1.0000 & 1.0000 & -- & Not Opt.$^\S$ & 100\% & -- & 0\\
+20 & 400 & 2000 & 6000 & 1.0000 & 1.0000 & -- & Not Opt.$^\S$ & 100\% & -- & 0\\
+\bottomrule
+\end{tabular}
+\par\smallskip\parbox{0.97\textwidth}{\scriptsize Obj: best value over the runs. CPU, Gap and Nodes: averages over the runs (Gap 0 for an optimal run). Opt.~$k/n$: optimal in $k$ of the $n$ runs; Not Opt.: no run proves optimality. CPU includes copying the model into HiGHS. $^*$: HiGHS itself exceeded the time limit by more than 2\%. $^\dagger$: process stopped by the hard stop (time limit $+$ 900\,s) before HiGHS returned; Obj is the MLU of the starting solution, Gap uses the trivial bound 0, CPU is the wall time of the process. $^\ddagger$: run started on machine A but not completed; the model does not fit in the 62.8\,GB of machine B. $^\S$: model not built (more than 128\,GB of RAM, Section~\ref{sec:env}). For $^\ddagger$ and $^\S$ no run returned: the best known solution is the starting one (Obj $=\MLU_0$) and Gap uses the trivial bound 0. ``--'': not available.}
+\end{table*}
+
+\begin{table*}[t]
+\centering\footnotesize
+\caption{Method 1, Step 9: periods $t\in\{0,1\}$ with the budget constraint, time limit 3600\,s, machine A unless marked. Obj is the MLU over both periods; $\MLU_0$ is the larger no-waypoint MLU of the two periods}\label{tab:step9}
+\begin{tabular}{@{}rrrrrrrlrrr@{}}
+\toprule
+Inst & $|V|$ & $|A|$ & $|D|$ & $\MLU_0$ & Obj & CPU (s) & Status & Gap & Nodes & Runs\\
+\midrule
+01 & 20 & 80 & 40 & 1.0000 & 0.9294 & 125.0 & Optimal & 0 & 1.0 & 10\\
+02 & 30 & 150 & 45 & 1.0981 & 0.9031 & 192.7 & Optimal & 0 & 1.0 & 10\\
+03 & 50 & 250 & 20 & 1.0000 & 0.9435 & 1810.5 & Opt. 7/10 & 8.41\% & 0.7 & 10\\
+04 & 50 & 250 & 200 & 1.0000 & 1.0000 & $>$4500 & Not Opt.$^\dagger$ & 100\% & -- & 1\\
+05 & 100 & 396 & 100 & 1.0000 & 1.0000 & $>$4500 & Not Opt.$^\dagger$ & 100\% & -- & 1\\
+06 & 100 & 500 & 500 & 1.0000 & 1.0000 & $>$5400$^{B}$ & Not Opt.$^\dagger$ & 100\% & -- & 1\\
+07 & 100 & 500 & 800 & 1.0000 & 1.0000 & -- & Not Opt.$^\ddagger$ & 100\% & -- & 0\\
+08 & 150 & 654 & 200 & 1.0000 & 1.0000 & $>$4500 & Not Opt.$^\dagger$ & 100\% & -- & 1\\
+09 & 150 & 750 & 200 & 1.0000 & 1.0000 & $>$4500 & Not Opt.$^\dagger$ & 100\% & -- & 1\\
+10 & 150 & 966 & 1000 & 1.0000 & 1.0000 & -- & Not Opt.$^\S$ & 100\% & -- & 0\\
+11 & 200 & 1000 & 400 & 1.0000 & 1.0000 & -- & Not Opt.$^\S$ & 100\% & -- & 0\\
+12 & 200 & 898 & 400 & 1.0001 & 1.0001 & -- & Not Opt.$^\S$ & 100\% & -- & 0\\
+13 & 200 & 1000 & 2000 & 1.0000 & 1.0000 & -- & Not Opt.$^\S$ & 100\% & -- & 0\\
+14 & 250 & 1108 & 600 & 1.0000 & 1.0000 & -- & Not Opt.$^\S$ & 100\% & -- & 0\\
+15 & 250 & 1250 & 600 & 1.0000 & 1.0000 & -- & Not Opt.$^\S$ & 100\% & -- & 0\\
+16 & 250 & 1452 & 4800 & 1.0000 & 1.0000 & -- & Not Opt.$^\S$ & 100\% & -- & 0\\
+17 & 300 & 1270 & 2000 & 1.0001 & 1.0001 & -- & Not Opt.$^\S$ & 100\% & -- & 0\\
+18 & 300 & 1500 & 2000 & 1.0000 & 1.0000 & -- & Not Opt.$^\S$ & 100\% & -- & 0\\
+19 & 300 & 1998 & 6000 & 1.0000 & 1.0000 & -- & Not Opt.$^\S$ & 100\% & -- & 0\\
+20 & 400 & 2000 & 6000 & 1.0000 & 1.0000 & -- & Not Opt.$^\S$ & 100\% & -- & 0\\
+\bottomrule
+\end{tabular}
+\par\smallskip\parbox{0.97\textwidth}{\scriptsize Obj: best value over the runs. CPU, Gap and Nodes: averages over the runs (Gap 0 for an optimal run). Opt.~$k/n$: optimal in $k$ of the $n$ runs; Not Opt.: no run proves optimality. CPU includes copying the model into HiGHS. $^*$: HiGHS itself exceeded the time limit by more than 2\%. $^\dagger$: process stopped by the hard stop (time limit $+$ 900\,s) before HiGHS returned; Obj is the MLU of the starting solution, Gap uses the trivial bound 0, CPU is the wall time of the process. $^\ddagger$: run started on machine A but not completed; the model does not fit in the 62.8\,GB of machine B. $^\S$: model not built (more than 128\,GB of RAM, Section~\ref{sec:env}). For $^\ddagger$ and $^\S$ no run returned: the best known solution is the starting one (Obj $=\MLU_0$) and Gap uses the trivial bound 0. ``--'': not available. $^{B}$: run on machine B, with a hard stop of the time limit $+$ 1800\,s, as used on machine A for the largest models.}
+\end{table*}
+
+\subsection{Method 1, single period (Step 6)}
+\emph{Optimal instances.} The single-period model is solved to proven optimality on 01, 02 and 03 in every run, and on setA-05 in 6 of the 10 runs; all runs that prove optimality give the same value. Segment Routing lowers the MLU by 7.1\% (setA-01), 45.1\% (02), 5.6\% (03) and 65.3\% (05) with respect to shortest-path routing. The solving time varies strongly with the seed (setA-02: 74--1498\,s, median 295\,s) and is not monotone in the model size: setA-02, with $3.9\cdot10^4$ variables, takes longer than setA-03 with $4.9\cdot10^4$ (median 47\,s). On setA-05, the four runs that do not prove optimality stop with an MLU of 0.139--0.195 instead of 0.1155.
+
+\emph{Root bound.} On every instance, the branch-and-bound tree has at most one node, so the bound obtained at the root (LP relaxation plus HiGHS cuts) is already the optimal value whenever optimality is proved. The time is spent solving the root LP and searching for an integer solution that reaches the bound, which motivated the larger \texttt{mip\_heuristic\_effort}.
+
+\emph{Unsolved instances.} On setA-04 (200 demands), every run stops at the time limit with the same root bound $LB=0.4591$, while nine of the ten seeds never improve the starting solution (MLU 0.6918) and only seed 2 finds a better one (0.5467). The difficulty is thus to find good integer solutions, not to prove the bound. On the models with $4.5$--$7.9\cdot10^6$ variables (06--09), HiGHS does not finish within 1800\,s: on setA-08 it reduces the MLU from 1.0 to 0.5832 (gap 45.3\%); on setA-06 and 07 it does not finish the root LP; on setA-09 the run is stopped at 2700\,s. Instances 10--12 ($1.6$--$2.2\cdot10^7$ variables) need 59--83\,GB; their runs on machine~A were started last and did not complete, and they cannot be run on machine~B. Instances 13--20 are not built. All of them are reported as Not Optimal with the starting solution as best known solution.
+
+\emph{No-loop restriction.} Table~\ref{tab:noloop} compares~\eqref{c:flow}--\eqref{c:load} with the restriction of Section~\ref{sec:props}. It keeps the optimal value on 01, 02, 03 and 05 and is faster on 01--03 (median time 2.0, 18 and 2.5 times smaller). On setA-04 it finds a much better solution (0.4791 instead of 0.5467 at best) with the same root bound. On 04 and 05 the comparison rests on a single run of the restriction, so it is only indicative. Since the restriction is not valid with a budget, Tables~\ref{tab:step6} and~\ref{tab:step9} use the original model.
+
+\begin{table}[t]
+\centering\footnotesize
+\caption{Method 1, Step 6 on 01--05 (machine A): model (1)--(3) versus the no-loop restriction (one run of the latter on 04 and 05). Obj: best value; CPU and Gap: averages}\label{tab:noloop}
+\setlength{\tabcolsep}{3pt}
+\begin{tabular}{@{}r|rrrr|rrrr@{}}
+\toprule
+ & \multicolumn{4}{c|}{Model (1)--(3)} & \multicolumn{4}{c}{With no-loop constraints}\\
+Inst & Obj & CPU & Gap & Runs & Obj & CPU & Gap & Runs\\
+\midrule
+01 & 0.9294 & 8.8 & 0 & 10 & 0.9294 & 2.3 & 0 & 10\\
+02 & 0.5486 & 468.9 & 0 & 10 & 0.5486 & 20.8 & 0 & 10\\
+03 & 0.9435 & 70.9 & 0 & 10 & 0.9435 & 21.5 & 0 & 10\\
+04 & 0.5467 & 1830.4 & 31.88\% & 10 & 0.4791 & 1828.3 & 4.18\% & 1\\
+05 & 0.1155 & 1484.8$^*$ & 12.78\% & 10 & 0.1155 & 1014.3 & 0 & 1\\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Method 1, two periods with budget (Step 9)}
+\emph{Solved instances.} The two-period model is solved to optimality on 01 and 02 in every run, and on 03 in 7 of the 10 runs, always with the same value. On 01 and 03, the two-period MLU equals the optimum of period 0 alone (0.9294 and 0.9435), while period 1 solved alone, without budget, reaches 0.3464 and 0.4026: period 0 is the bottleneck. On setA-02, shortest-path routing overloads one arc to 109.8\% at $t=1$; the model brings the MLU down to 0.9031, exactly the optimum of period 1 solved alone, so the limit is the network without its missing arc under the $t=1$ traffic, not the budget $\kappa(1)=63$. Because $\min U$ only looks at the most loaded period, the setA-02 solutions have an MLU of 0.80--0.88 at $t=0$, far above the 0.5486 reachable when $t=0$ is optimized alone; the lexicographic objective of the challenge would reduce these loads. On setA-03, seeds 1 and 2 find the optimal value 0.9435 but do not prove it within 3600\,s (lower bound 0.67--0.73), and seed 7 does not improve the starting solution (MLU 1.0, lower bound 0.68), while the seven other seeds prove optimality in 8--30 minutes.
+
+\emph{Unsolved instances.} On setA-04 ($1.5\cdot10^6$ variables), setA-05 ($3.0\cdot10^6$; with $\kappa(1)=1$ no demand may change its path) and setA-08, 09 ($1.3\cdot10^7$), no bound is returned and the processes are stopped at 4500\,s of wall time; on 04 and 05, HiGHS had overrun its own limit by more than ten minutes. On setA-06 ($1.5\cdot10^7$ variables), the run on machine~B used about 43\,GiB of RAM and was also stopped by its hard stop, at 5400\,s, without a bound. setA-07 ($2.4\cdot10^7$ variables, about 76\,GB) was started on machine~A but did not complete and does not fit in machine~B. Instances 10--20 are not built.
+
+\emph{Solution check.} Many solutions returned by HiGHS contain disjoint cycles (up to 36 segments in a single-period solution and 75 in a two-period one); they are an artefact of the formulation and are discarded when the paths are read. In every run that returned a solution, each recovered path joins its source to its target with at most $maxSeg$ segments, the MLU recomputed from the paths equals the objective value, and in Step~9 the true $\mathrm{dist}(P^0,P^1)$ is within the budget (at most 25 on setA-01 with $\kappa(1)=51$, 5 on setA-02 and 4 on setA-03). Hence every optimal value in Table~\ref{tab:step9} is attained by a valid T-ASR solution.
+
+\begin{table*}[t]
+\centering\footnotesize
+\caption{Method 2 (column generation), machine B: averages over ten runs (\texttt{random\_seed} $0,\dots,9$) for every instance and step. Obj: best MLU over the runs (the ten runs agree except on setA-19 in Step~9, where one run ends at 0.0487); CPU, Gap and Nodes: averages over the runs, with Gap 0 for an optimal run; LB: certified lower bound; Opt.: gap $1-LB/UB\le10^{-4}$; Opt.~$k/n$: optimal in $k$ of the $n$ runs. Best: best MLU of the challenge sprint (53 teams, two periods)~\cite{roadefrepo}}\label{tab:cg}
+\setlength{\tabcolsep}{3.6pt}
+\begin{tabular}{@{}r|rrrlrr|rrrlrr|r@{}}
+\toprule
+ & \multicolumn{6}{c|}{Step 6 (period 0, limit 1800\,s)} & \multicolumn{6}{c|}{Step 9 (periods 0 and 1 with budget, limit 3600\,s)} & \\
+Inst & Obj & LB & CPU (s) & Status & Gap & Nodes & Obj & LB & CPU (s) & Status & Gap & Nodes & Best\\
+\midrule
+\csname @@input\endcsname table_cg.tex % input nguyên thuỷ, dùng được trong tabular
+\bottomrule
+\end{tabular}
+\end{table*}
+
+\subsection{Method 2 (column generation)}\label{sec:cgres}
+Table~\ref{tab:cg} reports Method~2 on all 20 instances over ten runs. The ten runs return the same objective value on every instance and in both steps, with one exception: on setA-19 in Step~9, nine runs reach the optimum 0.046838 and one (seed 6) stops at 0.048712, for the reason discussed in Section~\ref{sec:compare}.
+
+\emph{Coverage and time.} Every instance is solved within the time limits: the longest run takes 1097\,s in Step~6 and 1225\,s in Step~9 (setA-16). In every run, column generation closes, i.e.\ the Lagrangian bound reaches the value of the RMP, within 67 iterations and 137\,s, and generates between 25 and 23\,281 columns, against up to $9.6\cdot10^8$ variables per period for Method~1. On 16 of the 20 instances, every run takes less than 25\,s in both steps.
+
+\emph{Quality.} In Step~9, the best MLU of Method~2 equals the best MLU reported by the 53 teams of the challenge sprint~\cite{roadefrepo} on all 20 instances, and every run reaches it on 19 of them: truncated to six decimals, as printed by the official checker, the two values coincide. Since these reference values were computed by the official checker of the organizers, this agreement also confirms our split coefficients and load computation on every instance. Optimality is proved in every run on 12 instances in Step~6 and on 13 in Step~9, and in nine of ten runs on setA-19 in Step~9. Where it is not, the average gap is below 1\% on 04, 13 and 16 (both steps) and between 1.8\% and 9.6\% on 10, 11, 12 and 14; on 03 it is 32.8\% in both steps. The remaining gaps come from the lower bound rather than from the solutions: on setA-03, Method~1 proves that 0.9435 is optimal in both steps, while the bound of Method~2 is only 0.6337. setA-03 has 20 demands, some of them large, so the LP, which may split a demand over several paths, is weak; Jaumard et al.~\cite{jaumard2026} also report larger LP--ILP gaps at $t=1$. On 07 and 18 in Step~6, and on 18 in Step~9, the proved optimum equals the no-waypoint MLU: the most loaded arc cannot be avoided.
+
+\emph{Reduction of the MLU.} With respect to shortest-path routing, Method~2 lowers the MLU by 40.6\% (Step~6) and 31.6\% (Step~9) in median over the 20 instances, and by up to 96.1\% (setA-13, Step~6). Over the 20 instances, the mean MLU is 0.481 in Step~6 and 0.572 in Step~9, against 0.839 and 0.989 for the values of Method~1 in Tables~\ref{tab:step6} and~\ref{tab:step9}, where an instance without a solution keeps the no-waypoint MLU.
+
+\subsection{Comparison of the two methods}\label{sec:compare}
+\emph{Consistency.} On every instance where Method~1 proves optimality (01, 02, 03, 05 in Step~6; 01, 02, 03 in Step~9), Method~2 returns the same value, and every Method~1 solution is at least the lower bound of Method~2; on setA-04 in Step~6, the root bound of Method~1 (0.4591) and the lower bound of Method~2 (0.4591) coincide, and Method~2 finds 0.4591 where Method~1 reaches at best 0.5467 (0.4791 with the no-loop restriction). The two methods use independent formulations and code paths for the solutions, so this agreement is a cross-check of both.
+
+\begin{table}[t]
+\centering\footnotesize
+\caption{Both methods on the same machine (B), ten runs each, instances on which Method 1 can be run ten times. Obj: best value; CPU and Gap: averages (Gap 0 for an optimal run)}\label{tab:same}
+\setlength{\tabcolsep}{2.6pt}
+\begin{tabular}{@{}rr|rrlr|rrl@{}}
+\toprule
+ & & \multicolumn{4}{c|}{Method 1 (compact MILP)} & \multicolumn{3}{c}{Method 2}\\
+Step & Inst & Obj & CPU (s) & Status & Gap & Obj & CPU (s) & Status\\
+\midrule
+\csname @@input\endcsname table_same_machine.tex
+\bottomrule
+\end{tabular}
+\par\smallskip{\scriptsize $^\dagger$: includes runs stopped by the hard stop (time limit $+$ 900\,s).\par}
+\end{table}
+
+\emph{Same machine.} Table~\ref{tab:same} runs both methods ten times on machine~B on the instances where Method~1 can be run ten times. Method~1 reproduces on machine~B the results of machine~A: the same optimal values on 01--03 (both steps) and 05, the same failing seeds on setA-03 in Step~9 (seeds 1, 2 and 7 do not prove optimality on either machine), and the same single improving seed on setA-04 in Step~6 (seed 2, MLU 0.5467); its average times are between 17\% lower and 6\% higher than on machine~A. The exception is setA-05 in Step~6: with eight runs sharing the eight cores, HiGHS overran its time limit in five runs, which the hard stop ended at 2700\,s, and three runs prove optimality, against six on machine~A, where the slow runs had been repeated under a lighter load. On the same machine, Method~2 needs at most 2.3\,s on average on these instances, mostly to compile the Julia code on setA-01, against 7 to 2102\,s for Method~1, and returns the same values, except on setA-04 in Step~6, where it finds 0.4591 instead of 0.5467. Its status differs only on setA-03, whose optimality Method~1 proves in every run of Step~6 and in seven runs of Step~9, while the bound of Method~2 is weak there (Section~\ref{sec:cgres}).
+
+\emph{Why more hardware does not help Method 1.} Machine~A has twice as many logical CPUs and twice the memory of machine~B, yet Method~1 needs up to about half an hour on the instances with fewer than $10^6$ variables and does not terminate on the larger ones, while Method~2 solves every instance on machine~B. The limits of Method~1 are intrinsic to the compact model, not to the machine. Its memory grows with $|D|\cdot n^2$ (3.2--3.7\,GB per million variables), so the largest models need up to 9\,TB. Its branch-and-bound trees have at most one node (Tables~\ref{tab:step6} and~\ref{tab:step9}), so the time goes into the root LP and the primal heuristics on a single model, and additional cores mainly allow more runs in parallel; on machine~A these parallel runs oversubscribed the CPUs, which further inflated the times. Method~1 behaves the same way on machine~B: on Step~9, setA-05 ($3.0\cdot10^6$ variables) and setA-06 ($1.5\cdot10^7$) are stopped at 4500\,s and 5400\,s without a bound, exactly as the large models on machine~A, and on the small instances its times are of the same order as on machine~A (Table~\ref{tab:same}). Method~2 avoids the $|D|\cdot n^2$ model altogether: it works with at most 23\,281 columns, each pricing round is a set of shortest-path recursions in $O(maxSeg\cdot n^2)$, and the MILPs it solves contain only the generated paths.
+
+\emph{Limits of Method 2.} Method~1 is the exact model of the project and, when it terminates, proves optimality without relying on the strength of an LP bound, as on setA-03. Method~2 is a heuristic for the upper bound; its proofs of optimality depend on the lower bound reaching the solution value, and its search may stop early. In the run of setA-19 (Step~9, seed 6) that ends at 0.048712, the MILPs of the last three rounds of the search all stop on their 120\,s limit without improvement, so the search ends after three non-improving rounds while about 1200\,s of its budget remain; the nine other runs, with the same configuration, reach the optimum 0.046838. A round whose MILP stops on its time limit is inconclusive rather than unsuccessful; counting only proved non-improving rounds, and spending the remaining budget, is a natural refinement.
+
+\section{Conclusion}\label{sec:concl}
+
+We implemented the MILP model of the T-ASR challenge with the MLU objective, for one period and for two periods with the linearized budget constraint, and evaluated it on the SetA benchmark with independent checks of every solution. For one period the formulation is exact; with two periods it may undercount $\mathrm{dist}$ through disjoint cycles, which is why every solution was checked. The compact model proves optimality on the small instances and reduces the MLU by up to 65.3\% with respect to shortest-path routing, but its size, $|D|\cdot|V|^2$ binary variables, limits it: 8 of the 20 instances cannot be built for one period and 11 for two periods, and from about $5\cdot10^6$ variables the root relaxation is not solved within the time limit.
+
+A path formulation solved by column generation removes this limit. Its pricing problem is a shortest path with at most $maxSeg$ arcs on the segment graph, every iteration yields a certified lower bound, pairs of paths make the budget exact for two periods, and MILPs over the generated paths combined with a load-driven neighbourhood search produce integer solutions. It solves all 20 instances in at most 1225\,s; on the two-period problem its best MLU over ten runs matches the best MLU of the challenge sprint on all 20 instances, and optimality is proved on 14 of them (in nine of ten runs on one). Three implementation details matter in practice: path lengths must be compared with a tolerance when weights are not integers; solutions of the compact model must be read as Euler walks and checked for disjoint cycles when a budget is present; and the MLU objective does not improve the periods that are not the bottleneck.
+
+Natural extensions are a stronger lower bound when a few demands are large (branch-and-price on the path variables), the preprocessing of dominated segment paths~\cite{callebaut2023}, and the sequential MILPs of~\cite{benhamiche2026} over the generated paths for the full lexicographic objective of the challenge.
+
+\section*{Acknowledgment}
+We thank Orange and the EURO/ROADEF Challenge 2026 organizers for the problem statement, the SetA instances, the checker and the published sprint results.
+
+\begin{thebibliography}{99}\footnotesize
+\bibitem{subject} A.~Benhamiche, Y.~Carlinet, M.~Chopin, E.~Gourdin, and N.~Perrot, ``Challenge EURO/ROADEF 2026: Problem description `Keep The Flow!','' Orange Research, 2026.
+\bibitem{benhamiche2026} A.~Benhamiche, K.~Bouaachra, Y.~Carlinet, M.~Chopin, E.~Gourdin, and N.~Perrot, ``On the T-adaptive segment routing problem,'' arXiv:2609.32896, 2026.
+\bibitem{jaumard2026} B.~Jaumard, N.~P.~Tran, and J.~M.~Ziazet, ``Segment routing traffic engineering with time-based reconfiguration constraints,'' arXiv:2610.04759, 2026.
+\bibitem{rfc8402} C.~Filsfils, S.~Previdi, L.~Ginsberg, B.~Decraene, S.~Litkowski, and R.~Shakir, ``Segment routing architecture,'' RFC 8402, Jul. 2018.
+\bibitem{fortz2000} B.~Fortz and M.~Thorup, ``Internet traffic engineering by optimizing OSPF weights,'' in \emph{Proc. IEEE INFOCOM}, 2000, pp. 519--528.
+\bibitem{bazgan2025} C.~Bazgan, M.~Chopin, A.~Nichterlein, and C.~Richer, ``Parameterized complexity of segment routing,'' in \emph{Proc. IEEE INFOCOM}, 2025, pp. 1--10.
+\bibitem{bhatia2015} R.~Bhatia, F.~Hao, M.~Kodialam, and T.~V.~Lakshman, ``Optimized network traffic engineering using segment routing,'' in \emph{Proc. IEEE INFOCOM}, 2015, pp. 657--665.
+\bibitem{hartert2015} R.~Hartert, P.~Schaus, S.~Vissicchio, and O.~Bonaventure, ``Solving segment routing problems with hybrid constraint programming techniques,'' in \emph{Proc. CP}, 2015, pp. 592--608.
+\bibitem{cg4sr} M.~Jadin, F.~Aubry, P.~Schaus, and O.~Bonaventure, ``CG4SR: Near optimal traffic engineering for segment routing with column generation,'' in \emph{Proc. IEEE INFOCOM}, 2019, pp. 1333--1341.
+\bibitem{li2020} X.~Li and K.~L.~Yeung, ``Traffic engineering in segment routing networks using MILP,'' \emph{IEEE Trans. Netw. Service Manag.}, vol. 17, no. 3, pp. 1941--1953, 2020.
+\bibitem{schuller2021} T.~Sch\"uller, N.~Aschenbruck, M.~Chimani, and M.~Horneffer, ``Failure resiliency with only a few tunnels -- enabling segment routing for traffic engineering,'' \emph{IEEE/ACM Trans. Netw.}, vol. 29, no. 1, pp. 262--274, 2021.
+\bibitem{pereira2020} V.~Pereira, M.~Rocha, and P.~Sousa, ``Traffic engineering with three-segments routing,'' \emph{IEEE Trans. Netw. Service Manag.}, vol. 17, no. 3, pp. 1896--1909, 2020.
+\bibitem{callebaut2023} H.~Callebaut, J.~De~Boeck, and B.~Fortz, ``Preprocessing for segment routing optimization,'' \emph{Networks}, vol. 82, no. 4, pp. 459--478, 2023.
+\bibitem{julia} J.~Bezanson, A.~Edelman, S.~Karpinski, and V.~B.~Shah, ``Julia: A fresh approach to numerical computing,'' \emph{SIAM Rev.}, vol. 59, no. 1, pp. 65--98, 2017.
+\bibitem{jump} M.~Lubin, O.~Dowson, J.~Dias~Garcia, J.~Huchette, B.~Legat, and J.~P.~Vielma, ``JuMP 1.0: Recent improvements to a modeling language for mathematical optimization,'' \emph{Math. Program. Comput.}, vol. 15, pp. 581--589, 2023.
+\bibitem{highs} Q.~Huangfu and J.~A.~J.~Hall, ``Parallelizing the dual revised simplex method,'' \emph{Math. Program. Comput.}, vol. 10, pp. 119--142, 2018.
+\bibitem{roadefrepo} Orange Open Source, ``EURO/ROADEF Challenge 2026: instances, checker and sprint results,'' \url{https://gitlab.com/Orange-OpenSource/network-optimization-tools/challenge-roadef-2026}, 2026.
+\end{thebibliography}
+
+\end{document}

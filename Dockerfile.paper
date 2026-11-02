@@ -1,0 +1,18 @@
+# =====================================================================
+# Image để biên dịch báo cáo chính report/paper/paper.tex (khuôn IEEE, cần gói IEEEtran trong texlive-publishers).
+# Dựng trên image orange-tasr-report (target "report" của Dockerfile chính, đã có TeX Live), nên build theo thứ tự:
+#
+#   docker build -t orange-tasr-report --target report .
+#   docker build -t orange-tasr-paper -f Dockerfile.paper .
+#   docker run --rm --user "$(id -u):$(id -g)" -v "$PWD/report/paper:/work" -w /work \
+#       --entrypoint bash orange-tasr-paper -c "pdflatex paper.tex && pdflatex paper.tex"
+#
+# Để riêng file này (không làm một target trong Dockerfile chính) vì trình build cũ của Docker (legacy builder)
+# dựng mọi giai đoạn của Dockerfile, nên một target LaTeX nữa sẽ làm chậm mọi lần build image chạy thí nghiệm.
+# =====================================================================
+ARG BASE=orange-tasr-report
+FROM ${BASE}
+USER root
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends texlive-publishers \
+ && rm -rf /var/lib/apt/lists/*

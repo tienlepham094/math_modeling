@@ -637,7 +637,7 @@ Số biến x **cho một chu kỳ** = (số demand) × (số cặp nút) ≈ `|
 |---|---|---|---|---|
 | toy | 7 | 2 | 2 × 42 = 84 | rất nhỏ |
 | setA-01 | 20 | 40 | 40 × 380 = 15 200 | giải trong vài giây |
-| setA-09 | 150 | 200 | 200 × 22 350 = 4 470 000 | dựng mô hình đã tốn 3.3 GB RAM |
+| setA-09 | 150 | 200 | 200 × 22 350 = 4 470 000 | dựng mô hình đã tốn 3.3 GB RAM; cả lượt chạy (chép vào HiGHS và giải) lên tới 17.7 GB |
 | setA-20 | 400 | 6000 | 6000 × 159 600 = 957 600 000 | gần 1 tỉ biến, không máy tính thường nào chứa nổi |
 
 Số cặp nút tăng theo **bình phương** số nút (n × n), rồi còn nhân với số demand. Vì vậy mô hình "phình" rất nhanh.
