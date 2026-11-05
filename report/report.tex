@@ -222,6 +222,38 @@ Số cột rất lớn, nên ta sinh dần (column generation):
 \end{itemize}
 Gap được tính như ở phương pháp 1, $1-LB/UB$, với $LB$ là cận dưới ở trên. ``Optimal'' nghĩa là gap $\le 10^{-4}$, cùng ngưỡng \texttt{mip\_rel\_gap} mặc định của HiGHS mà phương pháp 1 dùng; tức tối ưu đã được chứng minh, sai khác chỉ do làm tròn.
 
+\subsection{Điểm mới so với mô hình gốc của đề}\label{sec:new}
+
+Bảng~\ref{tab:new} tóm tắt những điểm phương pháp 2 khác mô hình (1)--(4) của đề.
+
+\begin{table}[h]
+\centering\small
+\begin{tabular}{@{}>{\raggedright\arraybackslash}p{2.9cm}>{\raggedright\arraybackslash}p{5.6cm}>{\raggedright\arraybackslash}p{6.6cm}@{}}
+\toprule
+Khía cạnh & Mô hình gốc (phương pháp 1) & Phương pháp 2 (sinh cột) \\
+\midrule
+Biến quyết định & $x^{dt}_{ij}\in\{0,1\}$ cho mỗi demand và mỗi cặp nút, khoảng $|D|\cdot n(n-1)$ biến mỗi chu kỳ (tới $9.6\cdot10^8$) & $\lambda_{dp}$ cho mỗi (demand, segment path); ràng buộc (1), (2) nằm sẵn trong định nghĩa path hợp lệ \\
+Kích thước & dựng toàn bộ mô hình từ đầu; thiếu RAM từ setA-10 & chỉ sinh các path có reduced cost âm: 25 đến khoảng 23\,000 cột \\
+Cận dưới & cận LP của branch-and-bound, chỉ có khi giải được & cận Lagrange ở mọi vòng và cận ``một demand'' (DP cổ chai) \\
+Budget (Step~9) & tuyến tính hoá $|x^{t}-x^{t-1}|$ bằng biến phụ $y$ & cột là cặp $(p_0,p_1)$ với hệ số $\Delta=|S(p_0)\triangle S(p_1)|$; ràng buộc chính xác, không cần $y$ \\
+Hai chu kỳ & tối ưu đồng thời trong một MILP lớn & vẫn tối ưu đồng thời (min của max), khác với cách giải tuần tự $t=0$ rồi $t=1$ của \cite{jaumard2026} \\
+Nghiệm nguyên & branch-and-bound trên toàn bộ biến $x$ & làm tròn LP $\to$ MILP trên tập path đã sinh $\to$ vòng cải thiện quanh link nghẽn \\
+Kiểm tra nghiệm & giá trị của solver & tính lại tải trong Julia và bằng một script Python độc lập, định dạng checker chính thức \\
+\bottomrule
+\end{tabular}
+\caption{So sánh phương pháp 2 với mô hình gốc của đề.}\label{tab:new}
+\end{table}
+
+Cụ thể, các ý mới chính là:
+\begin{enumerate}
+\item \textbf{Biến theo đường đi.} Thay vì quyết định từng segment, ta chọn cả một segment path. Mô hình chỉ còn ràng buộc chọn path và ràng buộc tải, với $|D|+|A|$ dòng, và có cùng giá trị tối ưu với mô hình gốc.
+\item \textbf{Sinh cột.} Path mới được tìm bằng bài toán đường ngắn nhất có tối đa $maxSeg$ cung trên đồ thị segment $H$, với giá cung $W(i,j)=\sum_a r(i,j,a)w_a$ lấy từ đối ngẫu. Một lần quy hoạch động từ mỗi nguồn cho path rẻ nhất tới mọi đích; với setA-20 ($n=400$), một vòng pricing mất dưới 1\,s.
+\item \textbf{Cận dưới chứng minh được.} Cận Lagrange có ngay ở mọi vòng nhờ kết quả pricing, kể cả khi chưa hội tụ. Cận ``một demand'' bù cho trường hợp ít demand lớn: ví dụ ở Step~9 setA-02, LP chỉ cho 0.624 nhưng cận này bằng 0.903075, đúng MLU tìm được.
+\item \textbf{Budget chính xác bằng cột cặp path.} Mỗi thay đổi đường tốn ít nhất 2 segment, nên cận Lagrange dùng $\min(\text{chung}_d,\ \text{riêng}_d+2\rho)$. Trường hợp $\kappa=1$ (setA-05, 10, 17) được xử lý tự động: chỉ cột $\Delta=0$ vừa budget. Cách viết ``MILP cặp'' chặt hơn nhiều so với tuyến tính hoá bằng $y$: ở setA-10, MILP giải xong trong 10\,s thay vì quá 300\,s.
+\item \textbf{Vòng cải thiện quanh link nghẽn.} Tập cột sinh ra để giải tốt LP, chưa chắc chứa path cần cho nghiệm nguyên tốt nhất (ở toy, MILP trên tập cột chỉ đạt 0.4375 trong khi tối ưu là 0.375). Vì vậy ta lặp: tìm link có tải $\ge 99.5\%$ MLU; sinh path mới cho các demand đi qua chúng bằng DP ``cổ chai'', giữ nguyên tải của các demand khác, kể cả path tránh hẳn link nghẽn; rồi giải lại MILP chỉ cho một phần demand được đổi đường. Khi bị kẹt, các ngưỡng được nới rộng.
+\end{enumerate}
+Ý tưởng sinh cột cho Segment Routing đã có trong \cite{cg4sr} và đã được áp dụng trên SetA trong \cite{jaumard2026}. Phần riêng của chúng tôi là cột cặp path với budget chính xác và tối ưu đồng thời hai chu kỳ, cận ``một demand'', MILP cặp không cần biến $y$, và vòng cải thiện quanh link nghẽn.
+
 % =====================================================================
 \section{Thí nghiệm số}\label{sec:exp}
 % =====================================================================
@@ -340,9 +372,9 @@ Inst & Obj & CPU (s) & Status & Gap & \#nút & Obj & CPU (s) & Status & Gap & \#
 
 Nhận xét:
 \begin{itemize}
-\item Phương pháp 2 giải được \textbf{cả 20 instance} trong giới hạn thời gian. Lần chạy lâu nhất mất 840\,s ở Step~6 và 1139\,s ở Step~9. Mỗi lần chạy chỉ dùng khoảng 1.3--2\,GB RAM, vì chỉ sinh vài chục đến khoảng 23\,000 cột thay vì tới $9.6\cdot10^8$ biến.
-\item Ở Step~9, MLU tìm được \textbf{bằng kết quả tốt nhất của challenge ở cả 20 instance} và ở cả 10 lần chạy (sai khác $10^{-6}$ do làm tròn). MLU trung bình trên 20 instance giảm từ 0.989 (phương pháp 1, phần lớn là nghiệm không waypoint) xuống 0.572.
-\item Tối ưu được chứng minh (gap $\le 10^{-4}$) ở 12/20 instance của Step~6 và 14/20 instance của Step~9. Phần gap còn lại chủ yếu do cận dưới yếu chứ không do nghiệm kém. Ví dụ setA-03 có gap 32.8\% nhưng phương pháp 1 đã chứng minh 0.943543 là tối ưu: instance này chỉ có 20 demand, trong đó có demand lớn, nên nới lỏng LP (cho phép chia một demand ra nhiều đường) cho cận thấp hơn nhiều.
+\item Phương pháp 2 giải được \textbf{cả 20 instance} trong giới hạn thời gian. Lần chạy lâu nhất mất 1097\,s ở Step~6 và 1225\,s ở Step~9 (trung bình lâu nhất: 841\,s và 1140\,s, đều ở setA-16). Mỗi lần chạy chỉ dùng khoảng 1.3--2\,GB RAM, vì chỉ sinh vài chục đến khoảng 23\,000 cột thay vì tới $9.6\cdot10^8$ biến.
+\item Ở Step~9, giá trị tốt nhất qua 10 lần chạy \textbf{bằng kết quả tốt nhất của challenge ở cả 20 instance} (sai khác $10^{-6}$ do làm tròn). Ở 19/20 instance, cả 10 lần chạy đều đạt giá trị đó; ở setA-19, 9/10 lần đạt và 1 lần dừng ở 0.048712. MLU trung bình trên 20 instance giảm từ 0.989 (phương pháp 1, phần lớn là nghiệm không waypoint) xuống 0.572; ở Step~6, từ 0.839 xuống 0.481.
+\item Tối ưu được chứng minh (gap $\le 10^{-4}$) ở 12/20 instance của Step~6 và 13/20 instance của Step~9 (thêm setA-19 ở 9/10 lần chạy). Phần gap còn lại chủ yếu do cận dưới yếu chứ không do nghiệm kém. Ví dụ setA-03 có gap 32.8\% nhưng phương pháp 1 đã chứng minh 0.943543 là tối ưu: instance này chỉ có 20 demand, trong đó có demand lớn, nên nới lỏng LP (cho phép chia một demand ra nhiều đường) cho cận thấp hơn nhiều.
 \item Hai phương pháp bổ sung cho nhau. Phương pháp 1 là mô hình gốc và chứng minh được tối ưu ở instance nhỏ. Phương pháp 2 mở rộng tới instance lớn và cho cận dưới để đánh giá nghiệm.
 \end{itemize}
 
@@ -361,7 +393,7 @@ Trên instance toy, mô hình cho đúng nghiệm minh hoạ của đề.
 % TODO: tóm tắt kết quả SetA.
 Hạn chế chính là kích thước: số biến tăng theo $|D|\cdot n^2$, nên mô hình đầy đủ chỉ dựng được cho các instance nhỏ.
 Để vượt qua hạn chế này, chúng tôi cài thêm phương pháp sinh cột trên mô hình theo đường đi (mục~\ref{sec:cg}).
-Phương pháp này giải được cả 20 instance trong giới hạn thời gian. Ở bài toán hai chu kỳ, nó đạt đúng MLU tốt nhất của vòng sprint challenge ở cả 20 instance (mục~\ref{sec:cgres}), và chứng minh tối ưu ở 14 instance.
+Phương pháp này giải được cả 20 instance trong giới hạn thời gian. Ở bài toán hai chu kỳ, giá trị tốt nhất qua 10 lần chạy bằng đúng MLU tốt nhất của vòng sprint challenge ở cả 20 instance (mục~\ref{sec:cgres}), và tối ưu được chứng minh ở 13 instance. Các điểm mới so với mô hình gốc được tóm tắt ở mục~\ref{sec:new}.
 Các hướng phát triển tiếp:
 \begin{itemize}
 \item làm chặt cận dưới khi có ít demand lớn, ví dụ bằng branch-and-price thay cho việc giải MILP trên tập cột cố định;

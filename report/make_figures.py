@@ -8,8 +8,10 @@ from matplotlib.patches import FancyArrowPatch
 import networkx as nx
 
 ROOT, OUT = sys.argv[1], sys.argv[2]
+LANG = sys.argv[3] if len(sys.argv) > 3 else "en"  # "vi": Vietnamese chart labels
+T = lambda en, vi: vi if LANG == "vi" else en
 os.makedirs(OUT, exist_ok=True)
-RED, INK, GRAY, LIGHT = "#BC1C2F", "#23272D", "#8A9099", "#CDD1D5"
+RED, INK, GRAY, LIGHT = "#2B6E8F", "#23272D", "#8A9099", "#CDD1D5"
 plt.rcParams.update({"font.family": "DejaVu Sans", "font.size": 11, "mathtext.fontset": "cm"})
 
 def load(name, base):
@@ -144,29 +146,29 @@ mlu0 = [1.0, 1.0, 1.0, 0.6918, 0.3333]
 obj = [0.9294, 0.5486, 0.9435, 0.6918, 0.1155]
 fig, ax = plt.subplots(figsize=(5.4, 3.3), dpi=220)
 xs = range(len(inst)); w = 0.38
-ax.bar([x - w / 2 for x in xs], mlu0, w, color=LIGHT, label="shortest paths (no waypoint)")
+ax.bar([x - w / 2 for x in xs], mlu0, w, color=LIGHT, label=T("shortest paths (no waypoint)", "đường ngắn nhất (không waypoint)"))
 b = ax.bar([x + w / 2 for x in xs], obj, w, color=RED, label="MILP")
 for x, v, o in zip(xs, mlu0, obj):
     ax.text(x + w / 2, o + 0.02, f"{o:.2f}", ha="center", fontsize=9.5, color=INK)
-ax.text(3 + w / 2, 0.6918 + 0.07, "not\noptimal", ha="center", fontsize=8.5, color=GRAY)
+ax.text(3 + w / 2, 0.6918 + 0.07, T("not\noptimal", "chưa\ntối ưu"), ha="center", fontsize=8.5, color=GRAY)
 ax.set_xticks(list(xs)); ax.set_xticklabels([f"setA-{i}" for i in inst])
-ax.set_ylabel("MLU at t = 0"); ax.set_ylim(0, 1.18)
+ax.set_ylabel(T("MLU at t = 0", "MLU tại t = 0")); ax.set_ylim(0, 1.18)
 ax.legend(frameon=False, fontsize=9.5, loc="upper right", ncol=2, bbox_to_anchor=(1, 1.08))
 style(ax); fig.tight_layout(); fig.savefig(f"{OUT}/step6.png", facecolor="white"); plt.close(fig)
 
 nv = [1.5e4, 3.9e4, 4.9e4, 4.9e5, 9.9e5, 4.95e6, 7.9e6, 4.5e6, 4.5e6, 2.2e7, 1.6e7, 1.6e7, 8.0e7, 3.7e7,
       3.7e7, 3.0e8, 1.8e8, 1.8e8, 5.4e8, 9.6e8]
-col = [RED if i in (0, 1, 2, 4) else ("#E39AA4" if i == 3 else (GRAY if i in (5, 7, 8) else LIGHT)) for i in range(20)]
+col = [RED if i in (0, 1, 2, 4) else ("#9CC3D5" if i == 3 else (GRAY if i in (5, 7, 8) else LIGHT)) for i in range(20)]
 fig, ax = plt.subplots(figsize=(6.4, 3.3), dpi=220)
 ax.bar(range(20), nv, color=col, width=0.72)
 ax.set_yscale("log"); ax.set_ylim(1e4, 2e9)
 ax.axhline(5e6, color=INK, lw=1, ls="--")
-ax.text(19.4, 6.2e6, "≈ what fits in 16 GB", ha="right", va="bottom", fontsize=9.5, color=INK)
+ax.text(19.4, 6.2e6, T("cap: 5·10⁶ variables", "giới hạn: 5·10⁶ biến"), ha="right", va="bottom", fontsize=9.5, color=INK)
 ax.set_xticks(range(20)); ax.set_xticklabels([f"{i:02d}" for i in range(1, 21)], fontsize=9)
-ax.set_ylabel("binary variables (t = 0)"); ax.set_xlabel("SetA instance")
+ax.set_ylabel(T("binary variables (t = 0)", "số biến nhị phân (t = 0)")); ax.set_xlabel(T("SetA instance", "Instance SetA"))
 from matplotlib.patches import Patch
-ax.legend(handles=[Patch(color=RED, label="solved to optimality"), Patch(color="#E39AA4", label="built, not solved"),
-                   Patch(color=GRAY, label="at the limit (pending)"), Patch(color=LIGHT, label="too large to build")],
+ax.legend(handles=[Patch(color=RED, label=T("solved to optimality", "giải tối ưu")), Patch(color="#9CC3D5", label=T("built, not solved", "dựng được, chưa giải xong")),
+                   Patch(color=GRAY, label=T("at the limit, no result", "sát giới hạn, chưa có kết quả")), Patch(color=LIGHT, label=T("too large to build", "quá lớn, không dựng"))],
           frameon=False, fontsize=9, loc="upper left")
 style(ax); fig.tight_layout(); fig.savefig(f"{OUT}/scale.png", facecolor="white"); plt.close(fig)
 print("figures done")
